@@ -19,10 +19,8 @@ def create_secure_api_key(prefix: str = "sk_live", length: int = 40) -> str:
         
     Example:
         >>> create_secure_api_key()
-        'sk_live_a1b'
         
         >>> create_secure_api_key("api_test", 20)
-        'api_test_a1b2c3d4e5f6789012'
     """
     # Sử dụng secrets.token_hex() để tạo random hex string
     random_part = secrets.token_hex(length // 2)

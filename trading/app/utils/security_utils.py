@@ -19,7 +19,7 @@ def create_secure_api_key(prefix: str = "sk_live", length: int = 40) -> str:
         
     Example:
         >>> create_secure_api_key()
-        'sk_live_a1b2c3d4e5f6789012345678901234567890abcd'
+        'sk_live_a1b'
         
         >>> create_secure_api_key("api_test", 20)
         'api_test_a1b2c3d4e5f6789012'

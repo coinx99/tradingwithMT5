@@ -2,26 +2,26 @@ from typing import Any
 import strawberry
 from strawberry.fastapi import GraphQLRouter
 
-from app.routes.dataset.query import DatasetQuery
-from app.routes.dataset.mutation import DatasetMutation
-from app.routes.dataset.subscription import DatasetSubscription
+from app.routes.trading.query import TradingQuery
+from app.routes.trading.mutation import TradingMutation
+from app.routes.trading.subscription import TradingSubscription
 
 # strawberry GraphQL
 
 @strawberry.type
-class Query(DatasetQuery):
+class Query(TradingQuery):
     @strawberry.field
     def ping(self) -> str:
         return "pong"
 
 
 @strawberry.type
-class Mutation(DatasetMutation):
+class Mutation(TradingMutation):
     pass
 
 
 @strawberry.type
-class Subscription(DatasetSubscription):
+class Subscription(TradingSubscription):
     pass
 
 

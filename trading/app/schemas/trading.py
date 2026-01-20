@@ -12,7 +12,7 @@ MarketType= Literal['spot',"future"]
 
 
 @strawberry.type
-class DatasetType:
+class TradingType:
     symbol: str
     time: datetime
     last_price: float

@@ -3,7 +3,6 @@ from beanie import init_beanie
 from pydantic import MongoDsn
 from colorama import Fore
 from pymongo import AsyncMongoClient
-from qdrant_client import QdrantClient
 
 from app.utils import log
 from app.core.config import settings
@@ -26,33 +25,10 @@ class DB:
     Chứa thông tin các trạng thái kết nối các database 
     """
     mongo_client: AsyncMongoClient = None
-    qdrant_client: QdrantClient = None
     init_mongo_done = False
-    init_qdrant_done = False
 
 
 db = DB()
-
-# ========================
-# Qdrant setup
-# ========================
-def init_qdrant(host:str, port: int):
-    """
-    Khởi tạo kết nối tới database Qdrant.
-    Tạo các collections nếu chưa có 
-    Returns:
-        client: QdrantClient
-    """
-    client = QdrantClient(host=host, port=port)
-
-    # tạo collection dataset nếu chưa tồn tại 
-    try:
-        client.get_collection("dataset")
-    except:
-        client.create_collection("dataset")
-    
-    return client
-
 
 
 async def init() -> None:
@@ -85,10 +61,3 @@ async def init() -> None:
             hashed_password=get_password_hash(settings.FIRST_SUPERUSER_PASSWORD),
             is_superuser=True,
         ).insert()
-
-
-    db.qdrant_client = init_qdrant(settings.QDRANT_HOST, settings.QDRANT_PORT)
-    db.init_qdrant_done = True
-    log.info(f"{Fore.GREEN} ✔️ init qdrant_client done")
-
-    

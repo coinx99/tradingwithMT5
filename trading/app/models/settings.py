@@ -22,7 +22,7 @@ class Settings(Document):
     class Config:
         extra = 'allow'
 
-setting_name = "dataset"
+setting_name = "tradingwithMT5"
 async def create_settings():
     """ tạo cài đặt trong database """
     s = Settings(

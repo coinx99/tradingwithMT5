@@ -7,7 +7,7 @@ from beanie import Document
 # initialize them on startup.
 from .user import User
 from .settings import Settings
-from .dataset import Dataset
+from .trading import Trading
 
 DocType = TypeVar("DocType", bound=Document)
 

@@ -1,34 +1,33 @@
 import strawberry
 from strawberry.types import Info
-from typing import Optional
 from colorama import Fore
 import os
 
-from app.schemas.dataset import DatasetType
-from app.schemas.settings import DatasetSettingsInput, DatasetSettingsType
+from app.schemas.trading import TradingType
+from app.schemas.settings import TradingSettingsInput, TradingSettingsType
 from app.models.settings import Settings, setting_name
 from app.routes.deps import require_superuser
 from app.utils.log import log
 
 
 @strawberry.type
-class DatasetMutation:
+class TradingMutation:
     @strawberry.mutation
     @require_superuser
-    async def update_dataset_settings(
+    async def update_settings(
         self,
         info: Info,
-        settings_input: DatasetSettingsInput
-    ) -> DatasetSettingsType:
+        settings_input: TradingSettingsInput
+    ) -> TradingSettingsType:
         """
-        Cập nhật settings của Dataset service.
+        Cập nhật settings của Trading service.
         Chỉ admin mới có quyền thực hiện.
         
         Args:
             settings_input: Các thông số cần cập nhật
             
         Returns:
-            DatasetSettingsType: Settings sau khi cập nhật
+            TradingSettingsType: Settings sau khi cập nhật
         """
         # Lấy settings hiện tại
         current_settings = await Settings.find_by_name(name=setting_name)
@@ -46,22 +45,22 @@ class DatasetMutation:
             log.info(f"{Fore.YELLOW}⚠️ Không có thay đổi nào")
         
         # Trả về settings đã cập nhật
-        return DatasetSettingsType(
+        return TradingSettingsType(
             name=current_settings.name,
         )
 
     @strawberry.mutation
     @require_superuser
-    async def restart_dataset_service(self, info: Info) -> bool:
+    async def restart_service(self, info: Info) -> bool:
         """
-        Restart dataset service.
+        Restart trading service.
         Chỉ admin mới có quyền thực hiện.
         Service sẽ tắt và Docker sẽ tự động khởi động lại.
         
         Returns:
             bool: True nếu lệnh restart được thực thi
         """
-        log.info(f"{Fore.YELLOW}🔄 Admin yêu cầu restart dataset service...")
+        log.info(f"{Fore.YELLOW}🔄 Admin yêu cầu restart trading service...")
         log.info(f"{Fore.RED}⚠️ Service sẽ tắt trong 1 giây...")
         
         # Sử dụng os._exit(1) để tắt service

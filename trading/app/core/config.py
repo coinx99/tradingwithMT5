@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     SERVER_NAME: str = "s1"
 
     # Application
-    PROJECT_NAME: str = "Liquidation"
+    PROJECT_NAME: str = "tradingwithMT5"
     PROJECT_VERSION: str = __version__
     API_V1_STR: str = "v1"
     DEBUG: bool = False  # Production mode by default
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     LOG_JSON_FORMAT: bool = False  # Use colored logs by default
 
     # MongoDB
-    MONGODB_URI: MongoDsn = "mongodb://mongo:27017/"  # type: ignore[assignment]
+    MONGODB_URI: MongoDsn = "mongodb://localhost:27017/"  # type: ignore[assignment]
     MONGODB_DB_NAME: str = "fastapp"
 
     # Superuser
@@ -64,27 +64,13 @@ class Settings(BaseSettings):
 
     # Authentication
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
-    SECRET_KEY: str = "9717de7dcef3d841a19e16993f269cff"
+    SECRET_KEY: str = "SECRET_KEY"
 
     # URLs
     URL_IDENT_LENGTH: int = 7
 
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
-
-    # QDRANT
-    QDRANT_HOST: str = "qdrant"
-    QDRANT_PORT: int = 6333
-
-    # postgres
-    POSTGRES_HOST: str = "postgres"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "fastapp"
-
-    TIMEFRAMES: str = "5m,15m,1h,8h"
-    MARKET_TYPES: str = "spot"
 
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = False  # Disable for performance
@@ -98,17 +84,3 @@ class Settings(BaseSettings):
 
 # Missing named arguments are filled with environment variables
 settings = Settings()  # type: ignore[call-arg]
-
-def get_timeframes():
-    _timeframes = settings.TIMEFRAMES.strip()
-    if not _timeframes or _timeframes == "":
-        return []
-    timeframes = [Timeframe(tf) for tf in _timeframes.split(',')]
-    return timeframes
-
-def get_market_types():
-    _market_types = settings.MARKET_TYPES.strip()
-    if not _market_types or _market_types == "":
-        return []
-    market_types = [MarketTypeEnum(m) for m in _market_types.split(',')]
-    return market_types

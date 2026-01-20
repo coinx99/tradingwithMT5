@@ -1,0 +1,46 @@
+[project]
+name = "fastapp"
+version = "0.1.0"
+description = "Fastapp: fastapi, beanie, mongodb, redis, qdrant, strawberry-graphql"
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    "aiohttp>=3.11.11",
+    "aiohttp-socks>=0.10.1",
+    "beanie>=2.0.0",
+    "colorama>=0.4.6",
+    "docker>=7.1.0",
+    "fastapi[standard]>=0.116.1",
+    "orjson>=3.11.2",
+    "pandas>=2.3.2",
+    "passlib[bcrypt]>=1.7.4",
+    "pydantic-settings>=2.10.1",
+    "python-jose[cryptography]>=3.5.0",
+    "qdrant-client>=1.15.1",
+    "redis>=6.4.0",
+    "requests>=2.32.5",
+    "sentence-transformers>=5.2.0",
+    "strawberry-graphql[fastapi]>=0.280.0",
+    "structlog>=25.4.0",
+]
+
+
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --cov=app --cov-report=term-missing"
+asyncio_mode = "auto"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+

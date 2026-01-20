@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+
+# Environments
+venv/
+.venv/
+.env
+.envtest
+# MyPy cache
+.mypy_cache/
+
+# Pytest cache
+.pytest_cache/
+
+# Ruff cache
+.ruff_cache
+
+# Pycharm project settings
+.idea/
+
+# database
+*.db
+*.sqlite3
+
+# Application logs
+*.log
+.vscode
+
+fastapp.egg-info
+
+data/
+uv.lock

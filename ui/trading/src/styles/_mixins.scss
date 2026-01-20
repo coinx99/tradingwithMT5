@@ -1,0 +1,170 @@
+@use 'sass:list';
+@use 'variables' as *;
+
+// Flex mixins
+@mixin flex($direction: row, $justify: flex-start, $align: stretch, $wrap: nowrap) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  flex-wrap: $wrap;
+}
+
+@mixin flex-center {
+  @include flex(row, center, center);
+}
+
+@mixin flex-between {
+  @include flex(row, space-between, center);
+}
+
+// Responsive mixins
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: #{$screen-xs - 1px}) {
+      @content;
+    }
+  }
+  @if $breakpoint == sm {
+    @media (min-width: #{$screen-sm}) {
+      @content;
+    }
+  }
+  @if $breakpoint == md {
+    @media (min-width: #{$screen-md}) {
+      @content;
+    }
+  }
+  @if $breakpoint == lg {
+    @media (min-width: #{$screen-lg}) {
+      @content;
+    }
+  }
+  @if $breakpoint == xl {
+    @media (min-width: #{$screen-xl}) {
+      @content;
+    }
+  }
+}
+
+// Card style mixin
+@mixin card($shadow: $box-shadow-card) {
+  background: $background-color;
+  border-radius: $border-radius-base;
+  box-shadow: $shadow;
+  padding: $space-lg;
+  
+  &:hover {
+    box-shadow: $box-shadow-hover;
+  }
+}
+
+// Button mixins
+@mixin button-variant($color, $background, $border: $background) {
+  color: $color;
+  background-color: $background;
+  border-color: $border;
+  
+  &:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// Loading animation
+@mixin loading-spinner($size: 40px, $border-width: 4px) {
+  width: $size;
+  height: $size;
+  border: $border-width solid $border-color-split;
+  border-left: $border-width solid $primary-color;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+// Animations
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Transition mixin
+@mixin transition($properties...) {
+  $transitions: ();
+  @each $property in $properties {
+    $transitions: list.append($transitions, #{$property} 0.3s ease, comma);
+  }
+  transition: $transitions;
+}
+
+// Text mixins
+@mixin text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin text-gradient($gradient: $gradient-primary) {
+  background: $gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Layout mixins
+@mixin container($max-width: 1200px) {
+  width: 100%;
+  max-width: $max-width;
+  margin: 0 auto;
+  padding: 0 $space-lg;
+  
+  @include respond-to(xs) {
+    padding: 0 $space-md;
+  }
+}
+
+// Scrollbar styling
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: $background-color-light;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $border-color-base;
+    border-radius: 3px;
+    
+    &:hover {
+      background: $text-color-secondary;
+    }
+  }
+}

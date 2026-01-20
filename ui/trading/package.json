@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ui/shared-types": "workspace:*",
+    "graphql-ws": "^6.0.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

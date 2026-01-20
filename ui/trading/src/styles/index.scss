@@ -1,0 +1,625 @@
+// Import variables and mixins first
+@use 'sass:color';
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Import Ant Design styles
+// Note: Ant Design v5 uses CSS-in-JS, so we don't need to import CSS
+
+// CSS Variables for Theme Support
+:root {
+  // Light theme (default)
+  --bg-color: #{$background-color};
+  --bg-color-light: #{$background-color-light};
+  --text-color: #{$text-color};
+  --text-color-secondary: #{$text-color-secondary};
+  --border-color: #{$border-color-base};
+  --border-color-split: #{$border-color-split};
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --header-bg: #{$background-color};
+  --card-bg: #{$background-color};
+  --sidebar-bg: #{$background-color};
+}
+
+// Dark theme
+.dark {
+  --bg-color: #141414;
+  --bg-color-light: #000000;
+  --text-color: #ffffff;
+  --text-color-secondary: #a6a6a6;
+  --border-color: #434343;
+  --border-color-split: #262626;
+  --shadow-color: rgba(255, 255, 255, 0.1);
+  --header-bg: #141414;
+  --card-bg: #1f1f1f;
+  --sidebar-bg: #141414;
+}
+
+// Global styles
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  line-height: $line-height-base;
+  color: var(--text-color);
+  background-color: var(--bg-color-light);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  @include transition(color, background-color);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+// Typography
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: $space-md;
+  line-height: 1.35;
+  @include transition(color);
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.75rem;
+}
+
+h4 {
+  font-size: 1.5rem;
+}
+
+h5 {
+  font-size: 1.25rem;
+}
+
+h6 {
+  font-size: 1rem;
+}
+
+p {
+  margin-bottom: $space-md;
+}
+
+a {
+  color: $primary-color;
+  text-decoration: none;
+  @include transition(color);
+
+  &:hover {
+    color: color.adjust($primary-color, $lightness: -15%);
+  }
+}
+
+// Utility classes
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.flex {
+  @include flex();
+}
+
+.flex-center {
+  @include flex-center();
+}
+
+.flex-between {
+  @include flex-between();
+}
+
+.flex-column {
+  @include flex(column);
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.mt-0 {
+  margin-top: 0;
+}
+
+.mr-0 {
+  margin-right: 0;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.ml-0 {
+  margin-left: 0;
+}
+
+.m-1 {
+  margin: $space-sm;
+}
+
+.mt-1 {
+  margin-top: $space-sm;
+}
+
+.mr-1 {
+  margin-right: $space-sm;
+}
+
+.mb-1 {
+  margin-bottom: $space-sm;
+}
+
+.ml-1 {
+  margin-left: $space-sm;
+}
+
+.m-2 {
+  margin: $space-md;
+}
+
+.mt-2 {
+  margin-top: $space-md;
+}
+
+.mr-2 {
+  margin-right: $space-md;
+}
+
+.mb-2 {
+  margin-bottom: $space-md;
+}
+
+.ml-2 {
+  margin-left: $space-md;
+}
+
+.m-3 {
+  margin: $space-lg;
+}
+
+.mt-3 {
+  margin-top: $space-lg;
+}
+
+.mr-3 {
+  margin-right: $space-lg;
+}
+
+.mb-3 {
+  margin-bottom: $space-lg;
+}
+
+.ml-3 {
+  margin-left: $space-lg;
+}
+
+.p-0 {
+  padding: 0;
+}
+
+.pt-0 {
+  padding-top: 0;
+}
+
+.pr-0 {
+  padding-right: 0;
+}
+
+.pb-0 {
+  padding-bottom: 0;
+}
+
+.pl-0 {
+  padding-left: 0;
+}
+
+.p-1 {
+  padding: $space-sm;
+}
+
+.pt-1 {
+  padding-top: $space-sm;
+}
+
+.pr-1 {
+  padding-right: $space-sm;
+}
+
+.pb-1 {
+  padding-bottom: $space-sm;
+}
+
+.pl-1 {
+  padding-left: $space-sm;
+}
+
+.p-2 {
+  padding: $space-md;
+}
+
+.pt-2 {
+  padding-top: $space-md;
+}
+
+.pr-2 {
+  padding-right: $space-md;
+}
+
+.pb-2 {
+  padding-bottom: $space-md;
+}
+
+.pl-2 {
+  padding-left: $space-md;
+}
+
+.p-3 {
+  padding: $space-lg;
+}
+
+.pt-3 {
+  padding-top: $space-lg;
+}
+
+.pr-3 {
+  padding-right: $space-lg;
+}
+
+.pb-3 {
+  padding-bottom: $space-lg;
+}
+
+.pl-3 {
+  padding-left: $space-lg;
+}
+
+// Loading spinner
+.loading-spinner {
+  @include loading-spinner();
+  margin: $space-lg auto;
+}
+
+// Layout utilities
+.flex-1 {
+  flex: 1 1 auto !important;
+}
+
+.flex-0 {
+  flex: 0 0 auto !important;
+}
+
+.flex-auto {
+  flex: 1 1 auto !important;
+}
+
+.flex-none {
+  flex: none !important;
+}
+
+.gap-1 {
+  gap: 4px !important;
+}
+
+.gap-2 {
+  gap: 8px !important;
+}
+
+.gap-3 {
+  gap: 12px !important;
+}
+
+.gap-4 {
+  gap: 16px !important;
+}
+
+.min-w-0 {
+  min-width: 0 !important;
+}
+
+.w-auto {
+  width: auto !important;
+}
+
+// Responsive utilities
+@include respond-to(xs) {
+  .hide-xs {
+    display: none !important;
+  }
+}
+
+@include respond-to(sm) {
+  .hide-sm {
+    display: none !important;
+  }
+}
+
+@include respond-to(md) {
+  .hide-md {
+    display: none !important;
+  }
+}
+
+@include respond-to(lg) {
+  .hide-lg {
+    display: none !important;
+  }
+}
+
+// Theme Toggle Animation
+.theme-toggle-btn {
+  @include transition(all);
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  .anticon {
+    @include transition(transform);
+  }
+}
+
+// Header Layout Improvements
+.ant-layout-header {
+  &.px-6 {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+
+    @media (max-width: 768px) {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+  }
+
+  .ant-menu-horizontal {
+    border-bottom: none !important;
+
+    .ant-menu-item {
+      border-bottom: 2px solid transparent !important;
+
+      &:hover {
+        border-bottom-color: var(--ant-primary-color) !important;
+      }
+
+      &.ant-menu-item-selected {
+        border-bottom-color: var(--ant-primary-color) !important;
+      }
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .hide-mobile {
+      display: none !important;
+    }
+  }
+}
+
+// Dashboard Header Styling
+.dashboard-header {
+  // Force vertical alignment for entire header
+  display: flex !important;
+  align-items: center !important;
+
+  // Ensure button and breadcrumb are on same visual baseline
+  .ant-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    .anticon {
+      display: flex !important;
+      align-items: center !important;
+    }
+  }
+
+  .ant-breadcrumb {
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    height: 100% !important;
+
+    ol {
+      display: flex !important;
+      align-items: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      height: 100% !important;
+    }
+
+    li {
+      display: flex !important;
+      align-items: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+
+      &:last-child {
+        .ant-breadcrumb-link {
+          margin-bottom: 0 !important;
+        }
+      }
+    }
+
+    .ant-breadcrumb-link {
+      color: var(--text-color) !important;
+      display: flex !important;
+      align-items: center !important;
+      line-height: 1 !important;
+      gap: 6px !important;
+      @include transition(color);
+
+      .anticon {
+        display: flex !important;
+        align-items: center !important;
+        font-size: 14px !important;
+      }
+
+      &:hover {
+        color: $primary-color !important;
+      }
+    }
+
+    .ant-breadcrumb-separator {
+      color: var(--text-color-secondary) !important;
+      display: flex !important;
+      align-items: center !important;
+      margin: 0 8px !important;
+    }
+  }
+
+  // Responsive adjustments for dashboard header
+  @media (max-width: 768px) {
+    padding: 0 16px 0 0 !important;
+
+    .ant-breadcrumb {
+      .ant-breadcrumb-link {
+        font-size: 12px !important;
+      }
+
+      .ant-breadcrumb-separator {
+        font-size: 12px !important;
+      }
+    }
+  }
+}
+
+// Footer Styling
+.app-footer {
+  text-align: center;
+  background: var(--bg-color) !important;
+  border-top: 1px solid var(--border-color-split) !important;
+  color: var(--text-color-secondary) !important;
+  padding: 24px 50px !important;
+  @include transition(background, border-color, color);
+
+  @media (max-width: 768px) {
+    padding: 12px 0px !important;
+  }
+
+  .footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .footer-text {
+    margin: 0 0 12px 0;
+    color: var(--text-color-secondary);
+    @include transition(color);
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .footer-link {
+    color: var(--text-color-secondary) !important;
+    text-decoration: none;
+    @include transition(color);
+
+    &:hover {
+      color: $primary-color !important;
+    }
+  }
+
+  .footer-divider {
+    color: var(--border-color);
+    font-size: 12px;
+  }
+}
+
+// Custom Ant Design overrides
+.ant-layout {
+  min-height: 100vh;
+  background: var(--bg-color-light) !important;
+  @include transition(background);
+}
+
+.ant-layout-header {
+  background: var(--header-bg) !important;
+  border-bottom: 1px solid var(--border-color-split) !important;
+  box-shadow: 0 2px 4px var(--shadow-color) !important;
+  padding: 0 $space-lg;
+  @include transition(background, border-color, box-shadow);
+}
+
+.ant-layout-content {
+  background: var(--bg-color-light) !important;
+  @include transition(background);
+}
+
+.ant-layout-sider {
+  background: var(--sidebar-bg) !important;
+  box-shadow: 2px 0 8px 0 var(--shadow-color) !important;
+  @include transition(background, box-shadow);
+
+  .ant-layout-sider-children {
+    background: var(--sidebar-bg) !important;
+    @include transition(background);
+  }
+}
+
+.ant-card {
+  border-radius: $border-radius-lg;
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 2px 4px var(--shadow-color) !important;
+  @include transition(box-shadow, background, border-color);
+
+  &:hover {
+    box-shadow: 0 4px 12px var(--shadow-color) !important;
+  }
+
+  .ant-card-body {
+    background: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    @include transition(background, color);
+  }
+}
+
+.ant-btn {
+  @include transition(all);
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Custom scrollbar for the entire app
+html {
+  @include custom-scrollbar;
+}

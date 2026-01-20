@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+  - 'trading'
+
+ignoredBuiltDependencies:
+  - '@parcel/watcher'

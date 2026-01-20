@@ -1,0 +1,69 @@
+// Colors
+$primary-color: #1890ff;
+$secondary-color: #52c41a;
+$error-color: #ff4d4f;
+$warning-color: #faad14;
+$info-color: #1890ff;
+$success-color: #52c41a;
+
+$text-color: #262626;
+$text-color-secondary: #8c8c8c;
+$text-color-disabled: #bfbfbf;
+
+$background-color: #ffffff;
+$background-color-light: #fafafa;
+$border-color-base: #d9d9d9;
+$border-color-split: #f0f0f0;
+
+// Gradients
+$gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+
+// Layout
+$layout-header-height: 64px;
+$layout-sidebar-width: 200px;
+$layout-sidebar-collapsed-width: 80px;
+
+// Spacing
+$space-xs: 4px;
+$space-sm: 8px;
+$space-md: 16px;
+$space-lg: 24px;
+$space-xl: 32px;
+$space-xxl: 48px;
+
+// Border radius
+$border-radius-sm: 4px;
+$border-radius-base: 6px;
+$border-radius-lg: 8px;
+
+// Shadows
+$box-shadow-base: 0 2px 8px rgba(0, 0, 0, 0.15);
+$box-shadow-card: 0 2px 4px rgba(0, 0, 0, 0.1);
+$box-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  sans-serif;
+
+$font-size-base: 14px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-xxl: 20px;
+
+$line-height-base: 1.5715;
+
+// Z-index
+$zindex-dropdown: 1000;
+$zindex-modal: 1050;
+$zindex-popover: 1060;
+$zindex-tooltip: 1070;
+
+// Breakpoints
+$screen-xs: 480px;
+$screen-sm: 576px;
+$screen-md: 768px;
+$screen-lg: 992px;
+$screen-xl: 1200px;
+$screen-xxl: 1600px;

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useMutation, useQuery, useSubscription } from '@apollo/client/react';
 import {
   Alert,
   Badge,
@@ -16,6 +16,7 @@ import {
   Table,
   Tag,
   Typography,
+  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -25,12 +26,17 @@ import {
 } from '@ant-design/icons';
 import {
   MT5_ACCOUNT_INFO_QUERY,
+  MT5_EXISTING_LOGIN_QUERY,
   MT5_ORDERS_QUERY,
   MT5_POSITIONS_LIVE_QUERY,
   MT5_TRADING_HISTORY_QUERY,
   CONNECT_MT5_MUTATION,
+  ADOPT_MT5_LOGIN_MUTATION,
   CLOSE_POSITION_MUTATION,
   PLACE_ORDER_MUTATION,
+  MT5_POSITIONS_UPDATES_SUBSCRIPTION,
+  MT5_ORDERS_UPDATES_SUBSCRIPTION,
+  MT5_ACCOUNT_UPDATES_SUBSCRIPTION,
 } from '../../graphql/mt5';
 import type {
   MT5AccountInfo,
@@ -75,6 +81,7 @@ const OrdersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [connectOpen, setConnectOpen] = useState(false);
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const [form] = Form.useForm<OrderFormValues>();
   const [connectForm] = Form.useForm<ConnectFormValues>();
 
@@ -84,6 +91,14 @@ const OrdersPage: React.FC = () => {
     error: accountError,
     refetch: refetchAccount,
   } = useQuery<{ mt5AccountInfo: MT5AccountInfo | null }>(MT5_ACCOUNT_INFO_QUERY, {
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all',
+  });
+
+  const {
+    data: existingLoginData,
+    loading: existingLoginLoading,
+  } = useQuery<{ mt5ExistingLogin: MT5AccountInfo | null }>(MT5_EXISTING_LOGIN_QUERY, {
     fetchPolicy: 'network-only',
     errorPolicy: 'all',
   });
@@ -123,12 +138,55 @@ const OrdersPage: React.FC = () => {
   });
 
   const [connectMt5, { loading: connectLoading }] = useMutation(CONNECT_MT5_MUTATION, {
-    errorPolicy: 'all',
+    onCompleted: () => {
+      setConnectError(null);
+      setConnectOpen(false);
+      connectForm.resetFields();
+      refreshAll();
+    },
+    onError: (error) => {
+      setConnectError(error.message || 'Failed to connect to MT5');
+    },
+  });
+
+  const [adoptMt5Login, { loading: adoptLoading }] = useMutation(ADOPT_MT5_LOGIN_MUTATION, {
+    onCompleted: () => {
+      setConnectError(null);
+      refreshAll();
+    },
+    onError: (error) => {
+      setConnectError(error.message || 'Failed to adopt MT5 login');
+    },
   });
 
   const [closePosition, { loading: closePositionLoading }] = useMutation(CLOSE_POSITION_MUTATION, {
     errorPolicy: 'all',
   });
+
+  // Real-time subscriptions
+  const { data: positionsUpdateData } = useSubscription(
+    MT5_POSITIONS_UPDATES_SUBSCRIPTION,
+    {
+      skip: !accountData?.mt5AccountInfo, // Only subscribe when connected
+      onError: (error) => console.error('Positions subscription error:', error),
+    }
+  );
+
+  const { data: ordersUpdateData } = useSubscription(
+    MT5_ORDERS_UPDATES_SUBSCRIPTION,
+    {
+      skip: !accountData?.mt5AccountInfo, // Only subscribe when connected
+      onError: (error) => console.error('Orders subscription error:', error),
+    }
+  );
+
+  const { data: accountUpdateData } = useSubscription(
+    MT5_ACCOUNT_UPDATES_SUBSCRIPTION,
+    {
+      skip: !accountData?.mt5AccountInfo, // Only subscribe when connected
+      onError: (error) => console.error('Account subscription error:', error),
+    }
+  );
 
   const positions = positionsData?.mt5PositionsLive ?? [];
   const pendingOrders = ordersData?.mt5Orders ?? [];
@@ -146,11 +204,43 @@ const OrdersPage: React.FC = () => {
     return pendingOrders.filter((o) => o.symbol?.toLowerCase().includes(s));
   }, [pendingOrders, search]);
 
-  const filteredTrades = useMemo(() => {
-    if (!search) return closedTrades;
-    const s = search.toLowerCase();
-    return closedTrades.filter((t) => t.symbol?.toLowerCase().includes(s));
-  }, [closedTrades, search]);
+  // Load saved form data on mount
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('mt5-connect-form');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        connectForm.setFieldsValue(parsed);
+      } catch (e) {
+        console.error('Failed to parse saved form data:', e);
+      }
+    }
+  }, []);
+
+  const handleConnect = async () => {
+    try {
+      const values = await connectForm.validateFields();
+      // Save form data to localStorage
+      localStorage.setItem('mt5-connect-form', JSON.stringify(values));
+      
+      await connectMt5({
+        variables: {
+          account: {
+            login: values.login,
+            password: values.password,
+            server: values.server || 'MetaQuotes-Demo',
+            path: values.path || null,
+          },
+        },
+      });
+    } catch (error) {
+      // Modal stays open on validation error
+    }
+  };
+
+  const handleAdoptLogin = async () => {
+    await adoptMt5Login();
+  };
 
   const openColumns: ColumnsType<MT5LivePosition> = [
     {
@@ -404,7 +494,10 @@ const OrdersPage: React.FC = () => {
               Refresh
             </Button>
             {!accountData?.mt5AccountInfo ? (
-              <Button type="primary" onClick={() => setConnectOpen(true)}>
+              <Button type="primary" onClick={() => {
+                setConnectError(null);
+                setConnectOpen(true);
+              }}>
                 Connect MT5
               </Button>
             ) : (
@@ -442,7 +535,33 @@ const OrdersPage: React.FC = () => {
           </Card>
         )}
 
-        {!accountData?.mt5AccountInfo && !errorMessage && (
+        {existingLoginData?.mt5ExistingLogin && !accountData?.mt5AccountInfo && (
+          <Alert
+            message="MT5 Already Logged In"
+            description={
+              <div>
+                <p>MT5 terminal is already logged in with account:</p>
+                <Space>
+                  <Text strong>{existingLoginData.mt5ExistingLogin.login}</Text>
+                  <Text type="secondary">{existingLoginData.mt5ExistingLogin.server}</Text>
+                  <Button 
+                    size="small" 
+                    type="primary" 
+                    loading={adoptLoading}
+                    onClick={handleAdoptLogin}
+                  >
+                    Use This Account
+                  </Button>
+                </Space>
+              </div>
+            }
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {!accountData?.mt5AccountInfo && !existingLoginData?.mt5ExistingLogin && !errorMessage && (
           <Alert
             message="MT5 not connected"
             description="Connect MT5 to load live positions/orders and place trades."
@@ -524,22 +643,7 @@ const OrdersPage: React.FC = () => {
         open={connectOpen}
         onCancel={() => setConnectOpen(false)}
         okText="Connect"
-        onOk={async () => {
-          const values = await connectForm.validateFields();
-          await connectMt5({
-            variables: {
-              account: {
-                login: values.login,
-                password: values.password,
-                server: values.server || 'MetaQuotes-Demo',
-                path: values.path || null,
-              },
-            },
-          });
-          setConnectOpen(false);
-          connectForm.resetFields();
-          refreshAll();
-        }}
+        onOk={handleConnect}
         confirmLoading={connectLoading}
         destroyOnClose
       >
@@ -548,16 +652,43 @@ const OrdersPage: React.FC = () => {
           layout="vertical"
           initialValues={{ server: 'MetaQuotes-Demo' }}
         >
-          <Form.Item name="login" label="Login" rules={[{ required: true }]}>
-            <Input />
+          {connectError && (
+            <Alert
+              message="Connection Error"
+              description={connectError}
+              type="error"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          <Form.Item 
+            name="login" 
+            label="Login" 
+            rules={[{ required: true }]}
+            tooltip="Your MT5 account number (e.g., 12345678)"
+          >
+            <Input placeholder="Enter your MT5 login" />
           </Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true }]}>
-            <Input.Password />
+          <Form.Item 
+            name="password" 
+            label="Password" 
+            rules={[{ required: true }]}
+            tooltip="Your MT5 account password"
+          >
+            <Input.Password placeholder="Enter your MT5 password" />
           </Form.Item>
-          <Form.Item name="server" label="Server">
+          <Form.Item 
+            name="server" 
+            label="Server"
+            tooltip="MT5 broker server name. Default is MetaQuotes-Demo for demo accounts"
+          >
             <Input placeholder="MetaQuotes-Demo" />
           </Form.Item>
-          <Form.Item name="path" label="Terminal path">
+          <Form.Item 
+            name="path" 
+            label="Terminal path"
+            tooltip="Optional: Path to MT5 terminal executable. Only needed if MT5 is not in default location"
+          >
             <Input placeholder="C:\\Program Files\\MetaTrader 5\\terminal64.exe" />
           </Form.Item>
         </Form>

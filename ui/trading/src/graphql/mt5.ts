@@ -14,9 +14,40 @@ export const CONNECT_MT5_MUTATION = gql`
   }
 `;
 
+export const ADOPT_MT5_LOGIN_MUTATION = gql`
+  mutation AdoptMt5Login {
+    adoptMt5Login {
+      id
+      accountLogin
+      server
+      isConnected
+      lastPing
+      errorMessage
+      createdAt
+    }
+  }
+`;
+
 export const MT5_ACCOUNT_INFO_QUERY = gql`
-  query Mt5AccountInfo {
+  query MT5AccountInfo {
     mt5AccountInfo {
+      login
+      server
+      name
+      company
+      currency
+      balance
+      equity
+      margin
+      marginFree
+      leverage
+    }
+  }
+`;
+
+export const MT5_EXISTING_LOGIN_QUERY = gql`
+  query MT5ExistingLogin {
+    mt5ExistingLogin {
       login
       server
       name
@@ -105,5 +136,56 @@ export const PLACE_ORDER_MUTATION = gql`
 export const CLOSE_POSITION_MUTATION = gql`
   mutation ClosePosition($positionId: String!) {
     closePosition(positionId: $positionId)
+  }
+`;
+
+// Subscriptions
+export const MT5_POSITIONS_UPDATES_SUBSCRIPTION = gql`
+  subscription Mt5PositionsUpdates {
+    mt5PositionsUpdates {
+      ticket
+      symbol
+      volume
+      type
+      priceOpen
+      priceCurrent
+      profit
+      magic
+      sl
+      tp
+    }
+  }
+`;
+
+export const MT5_ORDERS_UPDATES_SUBSCRIPTION = gql`
+  subscription Mt5OrdersUpdates {
+    mt5OrdersUpdates {
+      ticket
+      symbol
+      volumeCurrent
+      type
+      priceOpen
+      sl
+      tp
+      magic
+      state
+    }
+  }
+`;
+
+export const MT5_ACCOUNT_UPDATES_SUBSCRIPTION = gql`
+  subscription Mt5AccountUpdates {
+    mt5AccountUpdates {
+      login
+      server
+      name
+      company
+      currency
+      balance
+      equity
+      margin
+      marginFree
+      leverage
+    }
   }
 `;

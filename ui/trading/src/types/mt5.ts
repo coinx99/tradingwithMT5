@@ -12,7 +12,7 @@ export interface MT5AccountInfo {
 }
 
 export interface MT5LivePosition {
-  ticket: number;
+  ticket: string;
   symbol: string;
   volume: number;
   type: number;
@@ -25,7 +25,7 @@ export interface MT5LivePosition {
 }
 
 export interface MT5LiveOrder {
-  ticket: number;
+  ticket: string;
   symbol: string;
   volumeCurrent: number;
   type: number;

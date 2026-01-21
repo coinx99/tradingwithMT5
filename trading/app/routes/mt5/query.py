@@ -27,7 +27,7 @@ class MT5AccountInfoType:
 
 @strawberry.type
 class MT5LivePositionType:
-    ticket: int
+    ticket: str
     symbol: str
     volume: float
     type: int
@@ -41,7 +41,7 @@ class MT5LivePositionType:
 
 @strawberry.type
 class MT5LiveOrderType:
-    ticket: int
+    ticket: str
     symbol: str
     volume_current: float
     type: int
@@ -168,7 +168,7 @@ class MT5Query:
         orders = await mt5_service.get_live_orders(str(current_user.id))
         return [
             MT5LiveOrderType(
-                ticket=int(o.get("ticket", 0)),
+                ticket=str(o.get("ticket", 0)),
                 symbol=str(o.get("symbol", "")),
                 volume_current=float(o.get("volume_current", 0.0)),
                 type=int(o.get("type", 0)),
@@ -194,7 +194,7 @@ class MT5Query:
         positions = await mt5_service.get_live_positions(str(current_user.id))
         return [
             MT5LivePositionType(
-                ticket=int(p.get("ticket", 0)),
+                ticket=str(p.get("ticket", 0)),
                 symbol=str(p.get("symbol", "")),
                 volume=float(p.get("volume", 0.0)),
                 type=int(p.get("type", 0)),
@@ -207,6 +207,30 @@ class MT5Query:
             )
             for p in positions
         ]
+
+    @strawberry.field
+    async def mt5_existing_login(self, info: Info) -> Optional[MT5AccountInfoType]:
+        """Check if MT5 is already logged in with an existing account"""
+        try:
+            data = await mt5_service.check_existing_login()
+            if not data:
+                return None
+            
+            return MT5AccountInfoType(
+                login=data["login"],
+                server=data["server"],
+                name=data["name"],
+                company=data["company"],
+                currency="",  # Not available from terminal_info
+                balance=data["balance"],
+                equity=data["equity"],
+                margin=data["margin"],
+                margin_free=data["free_margin"],
+                leverage=data["leverage"],
+            )
+        except Exception as e:
+            log.error(f"Failed to check existing MT5 login: {e}")
+            return None
 
     @strawberry.field
     async def trading_history(self, info: Info) -> List[TradeType]:

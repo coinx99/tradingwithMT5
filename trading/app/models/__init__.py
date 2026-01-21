@@ -8,6 +8,7 @@ from beanie import Document
 from .user import User
 from .settings import Settings
 from .trading import Trading
+from .mt5 import Position, Order, Trade, MT5Connection
 
 DocType = TypeVar("DocType", bound=Document)
 

@@ -26,6 +26,7 @@ dependencies = [
     "sentence-transformers>=5.2.0",
     "strawberry-graphql[fastapi]>=0.280.0",
     "structlog>=25.4.0",
+    "metatrader5>=5.0.5509",
 ]
 
 

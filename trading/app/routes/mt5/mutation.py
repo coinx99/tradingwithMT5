@@ -178,6 +178,34 @@ class MT5Mutation:
             raise Exception("Failed to place order")
 
     @strawberry.mutation
+    async def adopt_mt5_login(self, info: Info) -> Optional[MT5ConnectionType]:
+        """Adopt existing MT5 login as current user connection"""
+        request = info.context["request"]
+        token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        api_key = request.query_params.get("api_key")
+
+        current_user = await get_current_user(token=token, api_key=api_key)
+        if not current_user:
+            raise Exception("User not authenticated")
+
+        try:
+            # Use the new adopt_existing_login method
+            connection = await mt5_service.adopt_existing_login(str(current_user.id))
+            
+            return MT5ConnectionType(
+                id=str(connection.id),
+                account_login=connection.account_login,
+                server=connection.server,
+                is_connected=connection.is_connected,
+                last_ping=connection.last_ping.isoformat() if connection.last_ping else None,
+                error_message=connection.error_message,
+                created_at=connection.created_at.isoformat(),
+            )
+        except Exception as e:
+            log.error(f"Failed to adopt MT5 login: {e}")
+            raise Exception(str(e))
+
+    @strawberry.mutation
     async def close_position(self, info: Info, position_id: str) -> bool:
         """Close position through MT5"""
         request = info.context["request"]

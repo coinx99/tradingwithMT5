@@ -142,7 +142,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   ];
 
   return (
-    <Layout>
+    <Layout className='layout-responsive'>
       <AppHeader
         navItems={navItems}
         languageItems={languageItems}

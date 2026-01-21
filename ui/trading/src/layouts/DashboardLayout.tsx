@@ -276,7 +276,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         }
       }
     }
-    
+
     if (bestMatch) return [bestMatch];
 
     return ['/dashboard'];
@@ -380,7 +380,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </Drawer>
       )}
 
-      <Layout>
+      <Flex vertical>
         <Header style={{ padding: `0 ${isMobile ? 0 : 24}px`, display: 'flex', alignItems: 'center', }}>
           <Flex justify="space-between" align="center" style={{ width: '100%' }}>
             {/* Left section */}
@@ -424,12 +424,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </Flex>
         </Header>
 
-        <Content className='layout-responsive'>
+        <Content className='layout-responsive' style={{ overflowX: 'scroll' }}>
           {children || <Outlet />}
         </Content>
-        {contextHolder}
-        {contextHolderNotification}
-      </Layout>
+      </Flex>
+
+      {contextHolder}
+      {contextHolderNotification}
+
     </Layout>
   );
 };

@@ -1,1 +1,3 @@
-from .user import UserQuery, UserMutation, UserSubscription, UserType
+from .query import UserQuery
+from .mutation import UserMutation
+from .subscription import UserSubscription

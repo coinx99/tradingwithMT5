@@ -2,7 +2,7 @@ import { gql } from '@apollo/client';
 
 // Fragments
 export const USER_FRAGMENT = gql`
-  fragment UserFields on User {
+  fragment UserFields on UserType {
     id
     email
     principalId
@@ -105,7 +105,7 @@ export const ME_QUERY = gql`
 // User Queries
 export const GET_USERS_QUERY = gql`
   ${USER_FRAGMENT}
-  query GetUsers($limit: Float, $offset: Float) {
+  query GetUsers($limit: Int, $offset: Int) {
     users(limit: $limit, offset: $offset) {
       ...UserFields
     }

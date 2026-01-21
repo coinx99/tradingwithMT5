@@ -15,7 +15,7 @@ export default defineConfig({
     port: 8000,
     proxy: {
       "/graphql": {
-        target: "https://admin.marketplace", // Apollo Router in Docker
+        target: "http://localhost:8080", // Apollo Router in Docker
         changeOrigin: true,
         secure: false
       }

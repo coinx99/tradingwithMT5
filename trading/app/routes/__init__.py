@@ -5,23 +5,24 @@ from strawberry.fastapi import GraphQLRouter
 from app.routes.trading.query import TradingQuery
 from app.routes.trading.mutation import TradingMutation
 from app.routes.trading.subscription import TradingSubscription
+from app.routes.users import UserQuery, UserMutation, UserSubscription
 
 # strawberry GraphQL
 
 @strawberry.type
-class Query(TradingQuery):
+class Query(TradingQuery, UserQuery):
     @strawberry.field
     def ping(self) -> str:
         return "pong"
 
 
 @strawberry.type
-class Mutation(TradingMutation):
+class Mutation(TradingMutation, UserMutation):
     pass
 
 
 @strawberry.type
-class Subscription(TradingSubscription):
+class Subscription(TradingSubscription, UserSubscription):
     pass
 
 

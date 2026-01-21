@@ -65,7 +65,7 @@ interface NotificationSettings {
 
 const Profile: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profileForm] = Form.useForm();
   const [securityForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -90,6 +90,7 @@ const Profile: React.FC = () => {
     onCompleted: () => {
       message?.success(t('profile.updateSuccess'));
       setLoading(false);
+      refreshUser(); // Refresh user data from server
     },
     onError: (error) => {
       message?.error(`${t('profile.updateError')}: ${error.message}`);

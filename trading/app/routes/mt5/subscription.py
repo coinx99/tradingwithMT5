@@ -9,47 +9,6 @@ from app.utils.log import log
 
 
 @strawberry.type
-class MT5PositionUpdate:
-    ticket: str
-    symbol: str
-    volume: float
-    type: int
-    price_open: float
-    price_current: float
-    profit: float
-    magic: int
-    sl: float
-    tp: float
-
-
-@strawberry.type
-class MT5OrderUpdate:
-    ticket: str
-    symbol: str
-    volume_current: float
-    type: int
-    price_open: float
-    sl: float
-    tp: float
-    magic: int
-    state: int
-
-
-@strawberry.type
-class MT5AccountUpdate:
-    login: int
-    server: str
-    name: str
-    company: str
-    currency: str
-    balance: float
-    equity: float
-    margin: float
-    margin_free: float
-    leverage: int
-
-
-@strawberry.type
 class MT5SubscriptionInternal:
     """MT5 real-time data subscriptions"""
     

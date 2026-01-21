@@ -12,47 +12,6 @@ from .mutation import PositionType, TradeType, MT5ConnectionType
 
 
 @strawberry.type
-class MT5AccountInfoType:
-    login: int
-    server: str
-    name: str
-    company: str
-    currency: str
-    balance: float
-    equity: float
-    margin: float
-    margin_free: float
-    leverage: int
-
-
-@strawberry.type
-class MT5LivePositionType:
-    ticket: str
-    symbol: str
-    volume: float
-    type: int
-    price_open: float
-    price_current: float
-    profit: float
-    magic: int
-    sl: float
-    tp: float
-
-
-@strawberry.type
-class MT5LiveOrderType:
-    ticket: str
-    symbol: str
-    volume_current: float
-    type: int
-    price_open: float
-    sl: float
-    tp: float
-    magic: int
-    state: int
-
-
-@strawberry.type
 class MT5Query:
     @strawberry.field
     async def mt5_connection(self, info: Info) -> Optional[MT5ConnectionType]:

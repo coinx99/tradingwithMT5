@@ -19,6 +19,7 @@ import Dashboard from './pages/Dashboard';
 // User Management Pages
 import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
+import { OrdersPage } from './pages/mt5';
 // Test Pages
 import PermissionTest from './pages/PermissionTest';
 import AuthDebug from './pages/AuthDebug';
@@ -166,6 +167,9 @@ const AppContent: React.FC = () => {
                         <Route path="users" element={<UserList />} />
                         <Route path="users/:userId" element={<UserDetail />} />
                         <Route path="users/:userId/edit" element={<UserDetail />} />
+                        
+                        {/* MT5 Routes */}
+                        <Route path="mt5/orders" element={<OrdersPage />} />
                         
                         {/* Test Routes */}
                         <Route path="permissions" element={<PermissionTest />} />

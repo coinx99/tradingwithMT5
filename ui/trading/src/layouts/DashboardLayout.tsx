@@ -140,6 +140,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         }
       ]
     },
+    {
+      key: 'mt5',
+      icon: <DashboardOutlined />,
+      label: 'MT5 Trading',
+      children: [
+        {
+          key: '/dashboard/mt5/orders',
+          label: <Link to="/dashboard/mt5/orders">Orders</Link>
+        }
+      ]
+    },
     // {
     //   key: 'analytics',
     //   icon: <BarChartOutlined />,

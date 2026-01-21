@@ -1,6 +1,7 @@
 packages:
-  - 'packages/*'
-  - 'trading'
+  - packages/*
+  - trading
 
 ignoredBuiltDependencies:
   - '@parcel/watcher'
+  - esbuild

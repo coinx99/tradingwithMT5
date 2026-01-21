@@ -8,6 +8,10 @@ công cụ giao dịch với MT5 thông qua python uv fastapi, có giao diện w
 - strawberry
 - mt5
 - redis
+```bash
+uv sync
+uv run main.py
+```
 
 
 ## web frontend
@@ -15,3 +19,13 @@ công cụ giao dịch với MT5 thông qua python uv fastapi, có giao diện w
 - antd
 - graphql
 - apollo client
+```bash
+cd ui
+pnpm install
+
+cd packages/shared-types
+pnpm build
+
+cd ../../trading
+pnpm dev
+```

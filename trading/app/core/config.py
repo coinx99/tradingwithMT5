@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
 
+    MT5_TERMINAL_PATH: str = ""
+
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = False  # Disable for performance
 

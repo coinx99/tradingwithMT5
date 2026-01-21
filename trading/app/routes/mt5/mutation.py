@@ -14,6 +14,7 @@ class MT5AccountInput:
     login: str
     password: str
     server: str = "MetaQuotes-Demo"
+    path: Optional[str] = None
 
 
 @strawberry.input
@@ -103,7 +104,8 @@ class MT5Mutation:
             user_id=str(current_user.id),
             login=account.login,
             password=account.password,
-            server=account.server
+            server=account.server,
+            path=account.path,
         )
 
         if success:

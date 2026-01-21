@@ -14,6 +14,11 @@ from app.utils.log import log
 
 logger = logging.getLogger(__name__)
 
+try:
+    import MetaTrader5 as mt5  # type: ignore
+except Exception:
+    mt5 = None
+
 
 class MT5Service:
     """Service for managing MT5 connections and operations"""
@@ -25,6 +30,15 @@ class MT5Service:
         from cryptography.fernet import Fernet
         key = Fernet.generate_key()
         self.cipher = Fernet(key)
+        self._mt5_lock = asyncio.Lock()
+        self._active_user_id: Optional[str] = None
+
+    def _ensure_mt5_available(self) -> None:
+        if mt5 is None:
+            raise RuntimeError(
+                "MetaTrader5 Python package is not available in this environment. "
+                "On Windows it typically requires 64-bit Python 3.11 (or older) + installed MT5 terminal."
+            )
     
     def encrypt_credentials(self, login: str, password: str) -> str:
         """Encrypt MT5 credentials for storage"""
@@ -43,49 +57,77 @@ class MT5Service:
             log.error(f"Failed to decrypt credentials: {e}")
             raise ValueError("Invalid credentials format")
     
-    async def connect_mt5(self, user_id: str, login: str, password: str, server: str) -> bool:
+    async def connect_mt5(
+        self,
+        user_id: str,
+        login: str,
+        password: str,
+        server: str,
+        path: Optional[str] = None,
+    ) -> bool:
         """Connect to MT5 terminal"""
+        connection: Optional[MT5Connection] = None
         try:
-            # Store encrypted credentials
+            self._ensure_mt5_available()
+
             encrypted_credentials = self.encrypt_credentials(login, password)
-            
-            # For simulation, skip MT5 path check
-            # mt5_path = self._get_mt5_path()
-            # if not mt5_path:
-            #     raise Exception("MT5 terminal not found")
-            
-            # Create connection record
-            connection = MT5Connection(
-                user_id=user_id,
-                account_login=login,
-                server=server,
-                is_connected=False
-            )
-            await connection.insert()
-            
-            # For now, simulate connection (in real implementation, this would use MT5 API)
-            # TODO: Implement actual MT5 Web API integration
-            await asyncio.sleep(2)  # Simulate connection time
-            
-            # Update connection status
+
+            existing = await MT5Connection.find_one({"user_id": user_id})
+            if existing:
+                connection = existing
+                connection.account_login = login
+                connection.server = server
+                connection.is_connected = False
+                connection.error_message = None
+                await connection.save()
+            else:
+                connection = MT5Connection(
+                    user_id=user_id,
+                    account_login=login,
+                    server=server,
+                    is_connected=False,
+                )
+                await connection.insert()
+
+            async with self._mt5_lock:
+                if self._active_user_id is not None and self._active_user_id != user_id:
+                    raise RuntimeError("MT5 terminal is already in use by another user session")
+
+                mt5_path = path or getattr(settings, "MT5_TERMINAL_PATH", "") or self._get_mt5_path()
+
+                init_ok = await asyncio.to_thread(mt5.initialize, mt5_path if mt5_path else None)
+                if not init_ok:
+                    raise RuntimeError(f"MT5 initialize failed: {mt5.last_error()}")
+
+                login_ok = await asyncio.to_thread(mt5.login, int(login), password, server)
+                if not login_ok:
+                    await asyncio.to_thread(mt5.shutdown)
+                    raise RuntimeError(f"MT5 login failed: {mt5.last_error()}")
+
+                acc = await asyncio.to_thread(mt5.account_info)
+                if acc is None:
+                    await asyncio.to_thread(mt5.shutdown)
+                    raise RuntimeError(f"MT5 account_info failed: {mt5.last_error()}")
+
+                self._active_user_id = user_id
+
             connection.is_connected = True
             connection.last_ping = datetime.utcnow()
             await connection.save()
-            
+
             self.connections[user_id] = {
                 "login": login,
                 "server": server,
                 "connected_at": datetime.utcnow(),
-                "encrypted_credentials": encrypted_credentials
+                "encrypted_credentials": encrypted_credentials,
             }
-            
+
             log.info(f"MT5 connected for user {user_id}")
             return True
-            
+
         except Exception as e:
             log.error(f"Failed to connect MT5 for user {user_id}: {e}")
-            # Update connection with error
-            if 'connection' in locals():
+            if connection:
                 connection.is_connected = False
                 connection.error_message = str(e)
                 await connection.save()
@@ -94,6 +136,12 @@ class MT5Service:
     async def disconnect_mt5(self, user_id: str) -> bool:
         """Disconnect from MT5 terminal"""
         try:
+            if mt5 is not None:
+                async with self._mt5_lock:
+                    if self._active_user_id == user_id:
+                        await asyncio.to_thread(mt5.shutdown)
+                        self._active_user_id = None
+
             # Update connection status
             connection = await MT5Connection.find_one({"user_id": user_id})
             if connection:
@@ -110,6 +158,120 @@ class MT5Service:
         except Exception as e:
             log.error(f"Failed to disconnect MT5 for user {user_id}: {e}")
             return False
+    
+    async def get_live_account_info(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Read current account info from MT5 terminal"""
+        try:
+            self._ensure_mt5_available()
+            if not await self._is_connected(user_id):
+                return None
+
+            async with self._mt5_lock:
+                if self._active_user_id != user_id:
+                    return None
+                acc = await asyncio.to_thread(mt5.account_info)
+
+            if acc is None:
+                return None
+
+            await MT5Connection.find_one({"user_id": user_id}).update(
+                {"$set": {"last_ping": datetime.utcnow()}},
+            )
+
+            return {
+                "login": int(getattr(acc, "login", 0)),
+                "server": str(getattr(acc, "server", "")),
+                "name": str(getattr(acc, "name", "")),
+                "company": str(getattr(acc, "company", "")),
+                "currency": str(getattr(acc, "currency", "")),
+                "balance": float(getattr(acc, "balance", 0.0)),
+                "equity": float(getattr(acc, "equity", 0.0)),
+                "margin": float(getattr(acc, "margin", 0.0)),
+                "margin_free": float(getattr(acc, "margin_free", 0.0)),
+                "leverage": int(getattr(acc, "leverage", 0)),
+            }
+        except Exception as e:
+            log.error(f"Failed to get MT5 account info for user {user_id}: {e}")
+            return None
+
+    async def get_live_positions(self, user_id: str) -> List[Dict[str, Any]]:
+        """Read current open positions directly from MT5 terminal"""
+        try:
+            self._ensure_mt5_available()
+            if not await self._is_connected(user_id):
+                return []
+
+            async with self._mt5_lock:
+                if self._active_user_id != user_id:
+                    return []
+                positions = await asyncio.to_thread(mt5.positions_get)
+
+            if not positions:
+                return []
+
+            await MT5Connection.find_one({"user_id": user_id}).update(
+                {"$set": {"last_ping": datetime.utcnow()}},
+            )
+
+            result: List[Dict[str, Any]] = []
+            for p in positions:
+                result.append(
+                    {
+                        "ticket": int(getattr(p, "ticket", 0)),
+                        "symbol": str(getattr(p, "symbol", "")),
+                        "volume": float(getattr(p, "volume", 0.0)),
+                        "type": int(getattr(p, "type", 0)),
+                        "price_open": float(getattr(p, "price_open", 0.0)),
+                        "price_current": float(getattr(p, "price_current", 0.0)),
+                        "profit": float(getattr(p, "profit", 0.0)),
+                        "magic": int(getattr(p, "magic", 0)),
+                        "sl": float(getattr(p, "sl", 0.0)),
+                        "tp": float(getattr(p, "tp", 0.0)),
+                    }
+                )
+            return result
+        except Exception as e:
+            log.error(f"Failed to get MT5 positions for user {user_id}: {e}")
+            return []
+
+    async def get_live_orders(self, user_id: str) -> List[Dict[str, Any]]:
+        """Read current pending orders directly from MT5 terminal"""
+        try:
+            self._ensure_mt5_available()
+            if not await self._is_connected(user_id):
+                return []
+
+            async with self._mt5_lock:
+                if self._active_user_id != user_id:
+                    return []
+                orders = await asyncio.to_thread(mt5.orders_get)
+
+            if not orders:
+                return []
+
+            await MT5Connection.find_one({"user_id": user_id}).update(
+                {"$set": {"last_ping": datetime.utcnow()}},
+            )
+
+            result: List[Dict[str, Any]] = []
+            for o in orders:
+                result.append(
+                    {
+                        "ticket": int(getattr(o, "ticket", 0)),
+                        "symbol": str(getattr(o, "symbol", "")),
+                        "volume_current": float(getattr(o, "volume_current", 0.0)),
+                        "type": int(getattr(o, "type", 0)),
+                        "price_open": float(getattr(o, "price_open", 0.0)),
+                        "sl": float(getattr(o, "sl", 0.0)),
+                        "tp": float(getattr(o, "tp", 0.0)),
+                        "magic": int(getattr(o, "magic", 0)),
+                        "state": int(getattr(o, "state", 0)),
+                    }
+                )
+            return result
+        except Exception as e:
+            log.error(f"Failed to get MT5 orders for user {user_id}: {e}")
+            return []
     
     async def place_order(self, user_id: str, order_data: Dict[str, Any]) -> Optional[Order]:
         """Place order through MT5"""

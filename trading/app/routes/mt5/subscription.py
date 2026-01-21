@@ -1,18 +1,19 @@
 import asyncio
-from typing import Dict, Any, AsyncGenerator
+from typing import Dict, Any, AsyncGenerator, ClassVar
 import strawberry
 from strawberry.types import Info
 
 from app.services.mt5_service import mt5_service
 from app.routes.deps import get_current_user
 from app.utils.log import log
+from app.schemas.mt5 import MT5AccountUpdate, MT5OrderUpdate, MT5PositionUpdate
 
 
 @strawberry.type
-class MT5SubscriptionInternal:
+class MT5Subscription:
     """MT5 real-time data subscriptions"""
     
-    _subscribers: Dict[str, Any] = strawberry.field(default_factory=dict)
+    _subscribers: ClassVar[Dict[str, Any]] = {}
     
     @classmethod
     async def publish_positions_update(cls, user_id: str, positions: list):
@@ -53,10 +54,7 @@ class MT5SubscriptionInternal:
                     await subscriber["queue"].put(message)
                 except Exception as e:
                     log.error(f"Failed to publish to subscriber {subscriber_id}: {e}")
-
-
-@strawberry.type
-class Subscription:
+    
     @strawberry.subscription
     async def mt5_positions_updates(self, info: Info) -> AsyncGenerator[MT5PositionUpdate, None]:
         """Subscribe to real-time MT5 positions updates"""
@@ -75,7 +73,7 @@ class Subscription:
         queue = asyncio.Queue()
         
         # Store subscriber
-        MT5SubscriptionInternal._subscribers[subscriber_id] = {
+        cls._subscribers[subscriber_id] = {
             "user_id": user_id,
             "queue": queue,
             "type": "positions"
@@ -103,7 +101,7 @@ class Subscription:
             log.error(f"Error in positions subscription: {e}")
         finally:
             # Clean up subscriber
-            MT5SubscriptionInternal._subscribers.pop(subscriber_id, None)
+            cls._subscribers.pop(subscriber_id, None)
     
     @strawberry.subscription
     async def mt5_orders_updates(self, info: Info) -> AsyncGenerator[MT5OrderUpdate, None]:
@@ -123,7 +121,7 @@ class Subscription:
         queue = asyncio.Queue()
         
         # Store subscriber
-        MT5SubscriptionInternal._subscribers[subscriber_id] = {
+        cls._subscribers[subscriber_id] = {
             "user_id": user_id,
             "queue": queue,
             "type": "orders"
@@ -150,7 +148,7 @@ class Subscription:
             log.error(f"Error in orders subscription: {e}")
         finally:
             # Clean up subscriber
-            MT5SubscriptionInternal._subscribers.pop(subscriber_id, None)
+            cls._subscribers.pop(subscriber_id, None)
     
     @strawberry.subscription
     async def mt5_account_updates(self, info: Info) -> AsyncGenerator[MT5AccountUpdate, None]:
@@ -170,7 +168,7 @@ class Subscription:
         queue = asyncio.Queue()
         
         # Store subscriber
-        MT5SubscriptionInternal._subscribers[subscriber_id] = {
+        cls._subscribers[subscriber_id] = {
             "user_id": user_id,
             "queue": queue,
             "type": "account"
@@ -197,4 +195,4 @@ class Subscription:
             log.error(f"Error in account subscription: {e}")
         finally:
             # Clean up subscriber
-            MT5SubscriptionInternal._subscribers.pop(subscriber_id, None)
+            cls._subscribers.pop(subscriber_id, None)

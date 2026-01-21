@@ -1,4 +1,7 @@
 
+from typing import Optional
+import strawberry
+
 @strawberry.type
 class MT5AccountInfoType:
     login: int

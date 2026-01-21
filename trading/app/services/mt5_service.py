@@ -21,8 +21,8 @@ except Exception:
 
 # Import at end to avoid circular dependency
 def get_mt5_subscription():
-    from app.routes.mt5.subscription import MT5SubscriptionInternal
-    return MT5SubscriptionInternal
+    from app.routes.mt5.subscription import MT5Subscription
+    return MT5Subscription
 
 
 class MT5Service:

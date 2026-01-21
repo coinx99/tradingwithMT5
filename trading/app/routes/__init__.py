@@ -2,11 +2,9 @@ from typing import Any
 import strawberry
 from strawberry.fastapi import GraphQLRouter
 
-from app.routes.trading.query import TradingQuery
-from app.routes.trading.mutation import TradingMutation
-from app.routes.trading.subscription import TradingSubscription
+from app.routes.trading import TradingQuery, TradingMutation, TradingSubscription
 from app.routes.users import UserQuery, UserMutation, UserSubscription
-from app.routes.mt5 import MT5Query, MT5Mutation, Subscription as MT5Subscription
+from app.routes.mt5 import MT5Query, MT5Mutation, MT5Subscription
 
 # strawberry GraphQL
 

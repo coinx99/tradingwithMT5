@@ -7,6 +7,7 @@ from app.services.mt5_service import mt5_service
 from app.models.mt5 import Position, Order, Trade, MT5Connection
 from app.routes.deps import get_current_user
 from app.utils.log import log
+from app.schemas.mt5 import MT5AccountInput, MT5ConnectionType, OrderInput, OrderType
 
 
 @strawberry.type

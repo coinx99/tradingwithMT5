@@ -4,11 +4,10 @@ from strawberry.types import Info
 from datetime import datetime
 
 from app.services.mt5_service import mt5_service
-from app.models.mt5 import Position, Trade, MT5Connection
+from app.models.mt5 import Trade
 from app.routes.deps import get_current_user
 from app.utils.log import log
-
-from .mutation import PositionType, TradeType, MT5ConnectionType
+from app.schemas.mt5 import MT5AccountInfoType, MT5LiveOrderType, MT5LivePositionType, PositionType, TradeType, MT5ConnectionType
 
 
 @strawberry.type

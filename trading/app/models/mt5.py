@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from beanie import Document, Indexed
+from pymongo import IndexModel
 import json
 import base64
 from cryptography.fernet import Fernet
@@ -83,3 +84,7 @@ class MT5Connection(Document):
     
     class Settings:
         name = "mt5_connections"
+        use_state_management = True
+        indexes = [
+            IndexModel([("server", 1), ("account_login", 1)], unique=True),
+        ]

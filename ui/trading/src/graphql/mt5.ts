@@ -161,7 +161,19 @@ export const PLACE_ORDER_MUTATION = gql`
 
 export const CLOSE_POSITION_MUTATION = gql`
   mutation ClosePosition($positionId: String!) {
-    closePosition(positionId: $positionId)
+    closePosition(positionId: $positionId) {
+      ... on SuccessResponse {
+        status
+        message
+        data
+      }
+      ... on ErrorResponse {
+        status
+        message
+        errorCode
+        details
+      }
+    }
   }
 `;
 

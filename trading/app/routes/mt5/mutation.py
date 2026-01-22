@@ -1,13 +1,15 @@
 import asyncio
-from typing import Optional, List, Dict, Any
+from typing import List, Optional
 import strawberry
 from strawberry.types import Info
+from datetime import datetime
 
 from app.services.mt5_service import mt5_service
-from app.models.mt5 import Position, Order, Trade, MT5Connection
+from app.models.mt5 import MT5Connection
 from app.routes.deps import get_current_user
 from app.utils.log import log
-from app.schemas.mt5 import MT5AccountInput, MT5ConnectionType, OrderInput, OrderType
+from app.schemas.mt5 import MT5ConnectionType, MT5AccountInput, OrderInput, OrderType
+from app.schemas.common import MutationResponse, SuccessResponse, ErrorResponse
 
 
 @strawberry.type
@@ -129,7 +131,7 @@ class MT5Mutation:
             raise Exception(str(e))
 
     @strawberry.mutation
-    async def close_position(self, info: Info, position_id: str) -> bool:
+    async def close_position(self, info: Info, position_id: str) -> MutationResponse:
         """Close position through MT5"""
         request = info.context["request"]
         token = request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -137,6 +139,32 @@ class MT5Mutation:
 
         current_user = await get_current_user(token=token, api_key=api_key)
         if not current_user:
-            raise Exception("User not authenticated")
+            return ErrorResponse(
+                status="ERROR",
+                message="User not authenticated",
+                error_code="AUTH_ERROR"
+            )
 
-        return await mt5_service.close_position(str(current_user.id), position_id)
+        try:
+            success = await mt5_service.close_position(str(current_user.id), position_id)
+            if success:
+                return SuccessResponse(
+                    status="SUCCESS",
+                    message=f"Position {position_id} closed successfully",
+                    data=position_id
+                )
+            else:
+                return ErrorResponse(
+                    status="ERROR",
+                    message="Failed to close position",
+                    error_code="CLOSE_FAILED"
+                )
+        except Exception as e:
+            # Log once here and return structured error
+            log.error(f"Failed to close position for user {current_user.id}: {e}")
+            return ErrorResponse(
+                status="ERROR",
+                message=str(e),
+                error_code="MT5_ERROR",
+                details=f"Position {position_id} could not be closed"
+            )

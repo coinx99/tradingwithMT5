@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from beanie import Document, Indexed
@@ -27,8 +27,8 @@ class Position(Document):
     user_id: str = Indexed()
     ticket_id: Optional[str] = None
     magic: Optional[int] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     class Settings:
         name = "positions"
@@ -46,7 +46,7 @@ class Order(Document):
     user_id: str = Indexed()
     ticket_id: Optional[str] = None
     magic: Optional[int] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     filled_at: Optional[datetime] = None
     
     class Settings:
@@ -80,7 +80,7 @@ class MT5Connection(Document):
     is_connected: bool = False
     last_ping: Optional[datetime] = None
     error_message: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     class Settings:
         name = "mt5_connections"

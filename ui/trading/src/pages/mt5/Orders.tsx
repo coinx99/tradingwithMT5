@@ -44,6 +44,8 @@ import type {
   MT5Trade,
   PlaceOrderInput,
 } from '../../types/mt5';
+import type { ResponseStatus } from '../../types/common';
+import { appContext } from '../../context/App';
 
 const { Title, Text } = Typography;
 
@@ -362,9 +364,37 @@ const OrdersPage: React.FC = () => {
           cancelText="Cancel"
           okButtonProps={{ danger: true, loading: closePositionLoading }}
           onConfirm={async () => {
-            await closePosition({ variables: { positionId: String(record.ticket) } });
-            refetchPositions();
-            refetchHistory();
+            try {
+              const result = await closePosition({ variables: { positionId: String(record.ticket) } });
+              const response = result.data?.closePosition;
+              
+              if (response?.status === 'SUCCESS') {
+                appContext.notification?.success({
+                  message: response.message || 'Position closed successfully',
+                  description: response.data ? `Position ID: ${response.data}` : undefined,
+                });
+                refetchPositions();
+                refetchHistory();
+              } else if (response?.status === 'ERROR') {
+                // Display structured error from backend
+                const errorMsg = response.details ? `${response.message}\n\n${response.details}` : response.message;
+                appContext.notification?.error({
+                  message: 'Failed to close position',
+                  description: errorMsg,
+                });
+              } else if (result.errors) {
+                // Fallback for GraphQL errors
+                appContext.notification?.error({
+                  message: 'Failed to close position',
+                  description: result.errors[0].message,
+                });
+              }
+            } catch (error: any) {
+              appContext.notification?.error({
+                message: 'Failed to close position',
+                description: error.message || 'Failed to close position',
+              });
+            }
           }}
         >
           <Button danger size="small">

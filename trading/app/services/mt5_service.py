@@ -3,7 +3,7 @@ import json
 import logging
 import base64
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 import subprocess
 import os
 from cryptography.fernet import Fernet
@@ -93,7 +93,7 @@ class MT5Service:
             account_login=login,
             server=server,
             is_connected=True,
-            last_ping=datetime.utcnow(),
+            last_ping=datetime.now(timezone.utc),
             error_message=None,
         )
         await connection.insert()
@@ -243,13 +243,13 @@ class MT5Service:
                 self._active_user_id = user_id
 
             connection.is_connected = True
-            connection.last_ping = datetime.utcnow()
+            connection.last_ping = datetime.now(timezone.utc)
             await connection.save()
 
             self.connections[user_id] = {
                 "login": login,
                 "server": server,
-                "connected_at": datetime.utcnow(),
+                "connected_at": datetime.now(timezone.utc),
                 "encrypted_credentials": encrypted_credentials,
             }
 
@@ -337,7 +337,7 @@ class MT5Service:
             # )
 
             await MT5Connection.find_one({"user_id": user_id}).update(
-                {"$set": {"last_ping": datetime.utcnow()}},
+                {"$set": {"last_ping": datetime.now(timezone.utc)}},
             )
 
             return {
@@ -385,7 +385,7 @@ class MT5Service:
                 return []
 
             await MT5Connection.find_one({"user_id": user_id}).update(
-                {"$set": {"last_ping": datetime.utcnow()}},
+                {"$set": {"last_ping": datetime.now(timezone.utc)}},
             )
 
             result: List[Dict[str, Any]] = []
@@ -430,7 +430,7 @@ class MT5Service:
                 return []
 
             await MT5Connection.find_one({"user_id": user_id}).update(
-                {"$set": {"last_ping": datetime.utcnow()}},
+                {"$set": {"last_ping": datetime.now(timezone.utc)}},
             )
 
             result: List[Dict[str, Any]] = []
@@ -484,7 +484,7 @@ class MT5Service:
             
             # Update order status
             order.status = "FILLED"
-            order.filled_at = datetime.utcnow()
+            order.filled_at = datetime.now(timezone.utc)
             await order.save()
             
             log.info(f"Order placed for user {user_id}: {order.symbol}")
@@ -497,44 +497,77 @@ class MT5Service:
     async def close_position(self, user_id: str, position_id: str) -> bool:
         """Close position through MT5"""
         try:
+            self._ensure_mt5_available()
             if not await self._is_connected(user_id):
                 raise Exception("MT5 not connected")
             
-            # Find position
-            position = await Position.get(position_id)
-            if not position or position.user_id != user_id:
-                raise Exception("Position not found")
+            async with self._mt5_lock:
+                if self._active_user_id != user_id:
+                    raise Exception("MT5 not connected for this user")
+                
+                # Check if AutoTrading is enabled
+                terminal_info = await asyncio.to_thread(mt5.terminal_info)
+                if not terminal_info.trade_allowed:
+                    raise Exception("AutoTrading is disabled in MT5 terminal. Please enable AutoTrading in MT5 settings: Go to MT5 terminal -> Tools -> Options -> Expert Advisors -> Enable 'Allow algorithmic trading'")
+                
+                # Get position from MT5 terminal
+                positions = await asyncio.to_thread(mt5.positions_get)
+                target_position = None
+                for p in positions:
+                    if str(getattr(p, "ticket", 0)) == position_id:
+                        target_position = p
+                        break
+                
+                if not target_position:
+                    raise Exception("Position not found in MT5 terminal")
+                
+                # Close position on MT5 terminal
+                result = await asyncio.to_thread(
+                    mt5.order_send, 
+                    {
+                        "action": mt5.TRADE_ACTION_DEAL,
+                        "symbol": getattr(target_position, "symbol"),
+                        "volume": getattr(target_position, "volume"),
+                        "type": mt5.ORDER_TYPE_SELL if getattr(target_position, "type") == mt5.POSITION_TYPE_BUY else mt5.ORDER_TYPE_BUY,
+                        "position": int(position_id),
+                        "price": getattr(target_position, "price_current"),
+                        "deviation": 20,
+                        "magic": getattr(target_position, "magic", 0),
+                        "comment": "Close position",
+                        "type_time": mt5.ORDER_TIME_GTC,
+                        "type_filling": mt5.ORDER_FILLING_IOC,
+                    }
+                )
+                
+                if result.retcode != mt5.TRADE_RETCODE_DONE:
+                    error_msg = f"MT5 close failed: {result.comment}"
+                    if "AutoTrading disabled" in result.comment:
+                        error_msg += "\n\nTo fix: Go to MT5 terminal -> Tools -> Options -> Expert Advisors -> Enable 'Allow algorithmic trading'"
+                    raise Exception(error_msg)
+                
+                # Create trade record
+                trade = Trade(
+                    symbol=getattr(target_position, "symbol"),
+                    volume=getattr(target_position, "volume"),
+                    type="BUY" if getattr(target_position, "type") == mt5.POSITION_TYPE_SELL else "SELL",
+                    price=getattr(target_position, "price_current"),
+                    profit=getattr(target_position, "profit"),
+                    commission=0.0,  # TODO: Get from result
+                    swap=0.0,  # TODO: Get from result
+                    user_id=user_id,
+                    ticket_id=position_id,
+                    magic=getattr(target_position, "magic", 0),
+                    open_time=datetime.now(timezone.utc),  # TODO: Get actual open time
+                    close_time=datetime.now(timezone.utc)
+                )
+                await trade.insert()
             
-            # TODO: Send close command to MT5 terminal
-            # For now, simulate position closing
-            await asyncio.sleep(1)
-            
-            # Create trade record
-            trade = Trade(
-                symbol=position.symbol,
-                volume=position.volume,
-                type=position.type,
-                price=position.price_open,
-                profit=position.profit,
-                commission=0.0,  # TODO: Get from MT5
-                swap=0.0,  # TODO: Get from MT5
-                user_id=user_id,
-                ticket_id=position.ticket_id,
-                magic=position.magic,
-                open_time=position.created_at,
-                close_time=datetime.utcnow()
-            )
-            await trade.insert()
-            
-            # Delete position
-            await position.delete()
-            
-            log.info(f"Position closed for user {user_id}: {position.symbol}")
+            log.info(f"Position {position_id} closed for user {user_id}")
             return True
             
         except Exception as e:
-            log.error(f"Failed to close position for user {user_id}: {e}")
-            return False
+            # Don't log here - let mutation handle logging to avoid duplicates
+            raise Exception(e)
     
     async def get_positions(self, user_id: str) -> List[Position]:
         """Get all positions for user"""

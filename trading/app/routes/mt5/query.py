@@ -1,7 +1,7 @@
 from typing import List, Optional
 import strawberry
 from strawberry.types import Info
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.services.mt5_service import mt5_service
 from app.models.mt5 import Trade
@@ -90,7 +90,7 @@ class MT5Query:
 
         live_positions = await mt5_service.get_live_positions(str(current_user.id))
         if live_positions:
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             return [
                 PositionType(
                     id=str(p.get("ticket", "")),

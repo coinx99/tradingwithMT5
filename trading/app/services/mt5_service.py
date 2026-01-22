@@ -304,6 +304,37 @@ class MT5Service:
 
             if acc is None:
                 return None
+            # log.info(acc)
+            # AccountInfo(
+            #     login=272918370, 
+            #     trade_mode=0, 
+            #     leverage=2000000000, 
+            #     limit_orders=1024, 
+            #     margin_so_mode=0, 
+            #     trade_allowed=True, 
+            #     trade_expert=True, 
+            #     margin_mode=2, 
+            #     currency_digits=2, 
+            #     fifo_close=False,
+            #     balance=38.45,
+            #     credit=0.0,
+            #     profit=-7.36, 
+            #     equity=31.09, 
+            #     margin=4.51, 
+            #     margin_free=26.58, 
+            #     margin_level=689.3569844789357, 
+            #     margin_so_call=60.0, 
+            #     margin_so_so=0.0, 
+            #     margin_initial=0.0, 
+            #     margin_maintenance=0.0, 
+            #     assets=0.0, 
+            #     liabilities=0.0, 
+            #     commission_blocked=0.0, 
+            #     name='Standard', 
+            #     server='Exness-MT5Trial14', 
+            #     currency='USD', 
+            #     company='Exness Technologies Ltd'
+            # )
 
             await MT5Connection.find_one({"user_id": user_id}).update(
                 {"$set": {"last_ping": datetime.utcnow()}},
@@ -316,10 +347,23 @@ class MT5Service:
                 "company": str(getattr(acc, "company", "")),
                 "currency": str(getattr(acc, "currency", "")),
                 "balance": float(getattr(acc, "balance", 0.0)),
+                "credit": float(getattr(acc, "credit", 0.0)),
+                "profit": float(getattr(acc, "profit", 0.0)),
                 "equity": float(getattr(acc, "equity", 0.0)),
                 "margin": float(getattr(acc, "margin", 0.0)),
                 "margin_free": float(getattr(acc, "margin_free", 0.0)),
+                "margin_level": float(getattr(acc, "margin_level", 0.0)),
+                "margin_so_call": float(getattr(acc, "margin_so_call", 0.0)),
+                "margin_so_so": float(getattr(acc, "margin_so_so", 0.0)),
                 "leverage": int(getattr(acc, "leverage", 0)),
+                "trade_mode": int(getattr(acc, "trade_mode", 0)),
+                "limit_orders": int(getattr(acc, "limit_orders", 0)),
+                "margin_so_mode": int(getattr(acc, "margin_so_mode", 0)),
+                "trade_allowed": bool(getattr(acc, "trade_allowed", False)),
+                "trade_expert": bool(getattr(acc, "trade_expert", False)),
+                "margin_mode": int(getattr(acc, "margin_mode", 0)),
+                "currency_digits": int(getattr(acc, "currency_digits", 0)),
+                "fifo_close": bool(getattr(acc, "fifo_close", False)),
             }
         except Exception as e:
             log.error(f"Failed to get MT5 account info for user {user_id}: {e}")

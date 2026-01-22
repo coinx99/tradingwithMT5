@@ -10,10 +10,23 @@ class MT5AccountInfoType:
     company: str
     currency: str
     balance: float
+    credit: float
+    profit: float
     equity: float
     margin: float
     margin_free: float
+    margin_level: float
+    margin_so_call: float
+    margin_so_so: float
     leverage: int
+    trade_mode: int
+    limit_orders: int
+    margin_so_mode: int
+    trade_allowed: bool
+    trade_expert: bool
+    margin_mode: int
+    currency_digits: int
+    fifo_close: bool
 
 
 @strawberry.type
@@ -157,8 +170,21 @@ class MT5AccountUpdate:
     company: str
     currency: str
     balance: float
+    credit: float
+    profit: float
     equity: float
     margin: float
     margin_free: float
+    margin_level: float
+    margin_so_call: float
+    margin_so_so: float
     leverage: int
+    trade_mode: int
+    limit_orders: int
+    margin_so_mode: int
+    trade_allowed: bool
+    trade_expert: bool
+    margin_mode: int
+    currency_digits: int
+    fifo_close: bool
 

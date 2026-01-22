@@ -37,10 +37,23 @@ export const MT5_ACCOUNT_INFO_QUERY = gql`
       company
       currency
       balance
+      credit
+      profit
       equity
       margin
       marginFree
+      marginLevel
+      marginSoCall
+      marginSoSo
       leverage
+      tradeMode
+      limitOrders
+      marginSoMode
+      tradeAllowed
+      tradeExpert
+      marginMode
+      currencyDigits
+      fifoClose
     }
   }
 `;
@@ -54,10 +67,23 @@ export const MT5_EXISTING_LOGIN_QUERY = gql`
       company
       currency
       balance
+      credit
+      profit
       equity
       margin
       marginFree
+      marginLevel
+      marginSoCall
+      marginSoSo
       leverage
+      tradeMode
+      limitOrders
+      marginSoMode
+      tradeAllowed
+      tradeExpert
+      marginMode
+      currencyDigits
+      fifoClose
     }
   }
 `;
@@ -182,10 +208,23 @@ export const MT5_ACCOUNT_UPDATES_SUBSCRIPTION = gql`
       company
       currency
       balance
+      credit
+      profit
       equity
       margin
       marginFree
+      marginLevel
+      marginSoCall
+      marginSoSo
       leverage
+      tradeMode
+      limitOrders
+      marginSoMode
+      tradeAllowed
+      tradeExpert
+      marginMode
+      currencyDigits
+      fifoClose
     }
   }
 `;

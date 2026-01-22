@@ -8,7 +8,11 @@ import {
 } from '@ant-design/icons';
 import { useLazyQuery } from '@apollo/client/react';
 import { PING_QUERY } from '../graphql/auth';
-import type { PingQuery } from '../generated/graphql';
+
+// Simple type for the ping query response
+interface PingQuery {
+  ping?: string;
+}
 
 const { Text, Paragraph } = Typography;
 const { Panel } = Collapse;

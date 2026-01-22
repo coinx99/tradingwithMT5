@@ -58,10 +58,23 @@ class MT5Query:
             company=str(data.get("company", "")),
             currency=str(data.get("currency", "")),
             balance=float(data.get("balance", 0.0)),
+            credit=float(data.get("credit", 0.0)),
+            profit=float(data.get("profit", 0.0)),
             equity=float(data.get("equity", 0.0)),
             margin=float(data.get("margin", 0.0)),
             margin_free=float(data.get("margin_free", 0.0)),
+            margin_level=float(data.get("margin_level", 0.0)),
+            margin_so_call=float(data.get("margin_so_call", 0.0)),
+            margin_so_so=float(data.get("margin_so_so", 0.0)),
             leverage=int(data.get("leverage", 0)),
+            trade_mode=int(data.get("trade_mode", 0)),
+            limit_orders=int(data.get("limit_orders", 0)),
+            margin_so_mode=int(data.get("margin_so_mode", 0)),
+            trade_allowed=bool(data.get("trade_allowed", False)),
+            trade_expert=bool(data.get("trade_expert", False)),
+            margin_mode=int(data.get("margin_mode", 0)),
+            currency_digits=int(data.get("currency_digits", 0)),
+            fifo_close=bool(data.get("fifo_close", False)),
         )
 
     @strawberry.field
@@ -181,10 +194,23 @@ class MT5Query:
                 company=data["company"],
                 currency="",  # Not available from terminal_info
                 balance=data["balance"],
+                credit=0.0,  # Not available from terminal_info
+                profit=data.get("profit", 0.0),  # Calculate from balance - equity
                 equity=data["equity"],
                 margin=data["margin"],
                 margin_free=data["free_margin"],
+                margin_level=0.0,  # Calculate: equity/margin*100
+                margin_so_call=0.0,  # Not available from terminal_info
+                margin_so_so=0.0,  # Not available from terminal_info
                 leverage=data["leverage"],
+                trade_mode=0,  # Not available from terminal_info
+                limit_orders=0,  # Not available from terminal_info
+                margin_so_mode=0,  # Not available from terminal_info
+                trade_allowed=True,  # Not available from terminal_info
+                trade_expert=True,  # Not available from terminal_info
+                margin_mode=0,  # Not available from terminal_info
+                currency_digits=2,  # Not available from terminal_info
+                fifo_close=False,  # Not available from terminal_info
             )
         except Exception as e:
             log.error(f"Failed to check existing MT5 login: {e}")

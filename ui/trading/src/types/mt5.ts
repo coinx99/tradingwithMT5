@@ -5,10 +5,23 @@ export interface MT5AccountInfo {
   company: string;
   currency: string;
   balance: number;
+  credit: number;
+  profit: number;
   equity: number;
   margin: number;
   marginFree: number;
+  marginLevel: number;
+  marginSoCall: number;
+  marginSoSo: number;
   leverage: number;
+  tradeMode: number;
+  limitOrders: number;
+  marginSoMode: number;
+  tradeAllowed: boolean;
+  tradeExpert: boolean;
+  marginMode: number;
+  currencyDigits: number;
+  fifoClose: boolean;
 }
 
 export interface MT5LivePosition {

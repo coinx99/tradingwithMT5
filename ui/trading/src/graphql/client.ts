@@ -1,5 +1,5 @@
 import { ApolloClient, ApolloLink, HttpLink, InMemoryCache, } from '@apollo/client';
-import { SetContextLink } from '@apollo/client/link/context';
+import { setContext } from '@apollo/client/link/context';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
@@ -26,7 +26,7 @@ const wsLink = new GraphQLWsLink(
 );
 
 // Authentication Link
-const authLink = new SetContextLink((_, { headers }: any) => {
+const authLink = setContext((_, { headers }: any) => {
   const token = localStorage.getItem('token');
   const sessionId = localStorage.getItem('sessionId');
 

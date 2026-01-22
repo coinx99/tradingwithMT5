@@ -16,7 +16,6 @@ import {
   Table,
   Tag,
   Typography,
-  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -97,7 +96,6 @@ const OrdersPage: React.FC = () => {
 
   const {
     data: existingLoginData,
-    loading: existingLoginLoading,
   } = useQuery<{ mt5ExistingLogin: MT5AccountInfo | null }>(MT5_EXISTING_LOGIN_QUERY, {
     fetchPolicy: 'network-only',
     errorPolicy: 'all',
@@ -163,6 +161,10 @@ const OrdersPage: React.FC = () => {
     errorPolicy: 'all',
   });
 
+  const [positions, setPositions] = useState<MT5LivePosition[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<MT5LiveOrder[]>([]);
+  const [accountInfo, setAccountInfo] = useState<MT5AccountInfo | null>(null);
+
   // Real-time subscriptions
   const { data: positionsUpdateData } = useSubscription(
     MT5_POSITIONS_UPDATES_SUBSCRIPTION,
@@ -188,8 +190,54 @@ const OrdersPage: React.FC = () => {
     }
   );
 
-  const positions = positionsData?.mt5PositionsLive ?? [];
-  const pendingOrders = ordersData?.mt5Orders ?? [];
+  // Update positions when subscription data arrives
+  React.useEffect(() => {
+    if (positionsUpdateData?.mt5PositionsUpdates) {
+      const updatedPosition = positionsUpdateData.mt5PositionsUpdates;
+      setPositions(prev => {
+        const filtered = prev.filter(p => p.ticket !== updatedPosition.ticket);
+        return [...filtered, updatedPosition];
+      });
+    }
+  }, [positionsUpdateData]);
+
+  // Update orders when subscription data arrives
+  React.useEffect(() => {
+    if (ordersUpdateData?.mt5OrdersUpdates) {
+      const updatedOrder = ordersUpdateData.mt5OrdersUpdates;
+      setPendingOrders(prev => {
+        const filtered = prev.filter(o => o.ticket !== updatedOrder.ticket);
+        return [...filtered, updatedOrder];
+      });
+    }
+  }, [ordersUpdateData]);
+
+  // Update account info when subscription data arrives
+  React.useEffect(() => {
+    if (accountUpdateData?.mt5AccountUpdates) {
+      setAccountInfo(accountUpdateData.mt5AccountUpdates);
+    }
+  }, [accountUpdateData]);
+
+  // Initialize with query data
+  React.useEffect(() => {
+    if (positionsData?.mt5PositionsLive) {
+      setPositions(positionsData.mt5PositionsLive);
+    }
+  }, [positionsData]);
+
+  React.useEffect(() => {
+    if (ordersData?.mt5Orders) {
+      setPendingOrders(ordersData.mt5Orders);
+    }
+  }, [ordersData]);
+
+  React.useEffect(() => {
+    if (accountData?.mt5AccountInfo) {
+      setAccountInfo(accountData.mt5AccountInfo);
+    }
+  }, [accountData]);
+
   const closedTrades = historyData?.tradingHistory ?? [];
 
   const filteredPositions = useMemo(() => {
@@ -207,7 +255,7 @@ const OrdersPage: React.FC = () => {
   // Load saved form data on mount
   React.useEffect(() => {
     const savedData = localStorage.getItem('mt5-connect-form');
-    if (savedData) {
+    if (savedData && connectForm) {
       try {
         const parsed = JSON.parse(savedData);
         connectForm.setFieldsValue(parsed);
@@ -469,6 +517,8 @@ const OrdersPage: React.FC = () => {
     closed: closedTrades.length,
   };
 
+  const currentAccountInfo = accountInfo || accountData?.mt5AccountInfo;
+
   const loading = accountLoading || positionsLoading || ordersLoading || historyLoading;
 
   const errorMessage =
@@ -476,7 +526,7 @@ const OrdersPage: React.FC = () => {
 
   return (
     <Card>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space vertical size="large" style={{ width: '100%' }}>
         <Flex justify="space-between" align="center">
           <Title level={3} style={{ margin: 0 }}>
             Orders
@@ -493,7 +543,7 @@ const OrdersPage: React.FC = () => {
             <Button icon={<ReloadOutlined />} onClick={refreshAll} loading={loading}>
               Refresh
             </Button>
-            {!accountData?.mt5AccountInfo ? (
+            {!currentAccountInfo ? (
               <Button type="primary" onClick={() => {
                 setConnectError(null);
                 setConnectOpen(true);
@@ -510,34 +560,87 @@ const OrdersPage: React.FC = () => {
 
         {errorMessage && (
           <Alert
-            message="Error"
+            title="Error"
             description={errorMessage}
             type="error"
             showIcon
           />
         )}
 
-        {accountData?.mt5AccountInfo && (
+        {currentAccountInfo && (
           <Card size="small">
             <Flex justify="space-between" wrap>
               <Space>
                 <Text strong>Account:</Text>
-                <Text>{accountData.mt5AccountInfo.login}</Text>
-                <Text type="secondary">{accountData.mt5AccountInfo.server}</Text>
+                <Text>{currentAccountInfo.login}</Text>
+                <Text type="secondary">{currentAccountInfo.server}</Text>
+                <Text type="secondary">{currentAccountInfo.name}</Text>
               </Space>
               <Space>
                 <Text type="secondary">Balance</Text>
-                <Text>{accountData.mt5AccountInfo.balance.toFixed(2)}</Text>
-                <Text type="secondary">Equity</Text>
-                <Text>{accountData.mt5AccountInfo.equity.toFixed(2)}</Text>
+                <Text>{currentAccountInfo.balance.toFixed(2)}</Text>
+                <Text type="secondary">Credit</Text>
+                <Text>{currentAccountInfo.credit.toFixed(2)}</Text>
+                <Text type="secondary">Profit</Text>
+                <Text style={{ color: currentAccountInfo.profit >= 0 ? '#52c41a' : '#ff4d4f' }}>
+                  {currentAccountInfo.profit.toFixed(2)}
+                </Text>
               </Space>
+              <Space>
+                <Text type="secondary">Equity</Text>
+                <Text>{currentAccountInfo.equity.toFixed(2)}</Text>
+                <Text type="secondary">Margin</Text>
+                <Text>{currentAccountInfo.margin.toFixed(2)}</Text>
+                <Text type="secondary">Free</Text>
+                <Text>{currentAccountInfo.marginFree.toFixed(2)}</Text>
+                <Text type="secondary">Level</Text>
+                <Text>{currentAccountInfo.marginLevel?.toFixed(1)}%</Text>
+              </Space>
+            </Flex>
+            {currentAccountInfo.marginSoCall > 0 && (
+              <Alert
+                title="Margin Call Warning"
+                description={`Margin level at ${currentAccountInfo.marginLevel?.toFixed(1)}%. Call at ${currentAccountInfo.marginSoCall}%, Stop Out at ${currentAccountInfo.marginSoSo}%`}
+                type={
+                  currentAccountInfo.marginLevel
+                    ? currentAccountInfo.marginSoSo > 0
+                      ? currentAccountInfo.marginLevel <= currentAccountInfo.marginSoSo
+                        ? 'error'  // Đỏ: Stop Out level
+                        : currentAccountInfo.marginLevel <= currentAccountInfo.marginSoCall
+                        ? 'warning' // Vàng: Margin Call level  
+                        : 'success' // Xanh: An toàn
+                      : currentAccountInfo.marginLevel <= currentAccountInfo.marginSoCall
+                        ? 'warning' // Vàng: Margin Call level  
+                        : 'success' // Xanh: An toàn
+                    : 'warning'
+                }
+                showIcon
+                style={{ marginTop: 8 }}
+              />
+            )}
+            <Flex style={{ marginTop: 8 }} gap="small">
+              <Tag color={currentAccountInfo.tradeAllowed ? 'green' : 'red'}>
+                Trading: {currentAccountInfo.tradeAllowed ? 'Allowed' : 'Disabled'}
+              </Tag>
+              <Tag color={currentAccountInfo.tradeExpert ? 'blue' : 'default'}>
+                Expert: {currentAccountInfo.tradeExpert ? 'Enabled' : 'Disabled'}
+              </Tag>
+              <Tag color="default">
+                Leverage: 1:{currentAccountInfo.leverage}
+              </Tag>
+              <Tag color="default">
+                Digits: {currentAccountInfo.currencyDigits}
+              </Tag>
+              {currentAccountInfo.fifoClose && (
+                <Tag color="purple">FIFO Close</Tag>
+              )}
             </Flex>
           </Card>
         )}
 
         {existingLoginData?.mt5ExistingLogin && !accountData?.mt5AccountInfo && (
           <Alert
-            message="MT5 Already Logged In"
+            title="MT5 Already Logged In"
             description={
               <div>
                 <p>MT5 terminal is already logged in with account:</p>
@@ -563,7 +666,7 @@ const OrdersPage: React.FC = () => {
 
         {!accountData?.mt5AccountInfo && !existingLoginData?.mt5ExistingLogin && !errorMessage && (
           <Alert
-            message="MT5 not connected"
+            title="MT5 not connected"
             description="Connect MT5 to load live positions/orders and place trades."
             type="info"
             showIcon
@@ -630,7 +733,7 @@ const OrdersPage: React.FC = () => {
           <Table
             rowKey={(r) => String(r.id)}
             columns={closedColumns}
-            dataSource={filteredTrades}
+            dataSource={closedTrades}
             loading={historyLoading}
             pagination={{ pageSize: 20, showSizeChanger: true }}
             scroll={{ x: 900 }}
@@ -645,7 +748,7 @@ const OrdersPage: React.FC = () => {
         okText="Connect"
         onOk={handleConnect}
         confirmLoading={connectLoading}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={connectForm}
@@ -654,7 +757,7 @@ const OrdersPage: React.FC = () => {
         >
           {connectError && (
             <Alert
-              message="Connection Error"
+              title="Connection Error"
               description={connectError}
               type="error"
               showIcon
@@ -701,7 +804,7 @@ const OrdersPage: React.FC = () => {
         okText="Submit"
         onOk={onSubmitPlaceOrder}
         confirmLoading={placeOrderLoading}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={form}

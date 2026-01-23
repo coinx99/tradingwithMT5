@@ -27,7 +27,7 @@ class SavedAccountType:
     login: int
     server: str
     path: Optional[str]
-    is_active: bool
-    last_connected: Optional[str]
-    created_at: str
-    updated_at: str
+    isActive: bool
+    lastConnected: Optional[str]
+    createdAt: str
+    updatedAt: str

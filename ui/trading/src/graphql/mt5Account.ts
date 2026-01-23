@@ -7,10 +7,10 @@ export const SAVED_MT5_ACCOUNTS_QUERY = gql`
       login
       server
       path
-      is_active
-      last_connected
-      created_at
-      updated_at
+      isActive
+      lastConnected
+      createdAt
+      updatedAt
     }
   }
 `;

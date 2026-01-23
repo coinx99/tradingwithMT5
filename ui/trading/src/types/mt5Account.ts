@@ -3,10 +3,10 @@ export interface SavedAccount {
   login: number;
   server: string;
   path?: string;
-  is_active: boolean;
-  last_connected?: string;
-  created_at: string;
-  updated_at: string;
+  isActive: boolean;
+  lastConnected?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SaveAccountInput {

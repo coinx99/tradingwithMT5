@@ -16,6 +16,7 @@ import {
   Tooltip,
   Badge,
   Alert,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -29,6 +30,14 @@ import {
 } from '@ant-design/icons';
 import type { SavedAccount, SaveAccountInput, UpdateAccountInput } from '../types/mt5Account';
 import { appContext } from '../context/App';
+import { 
+  SAVED_MT5_ACCOUNTS_QUERY, 
+  SAVE_MT5_ACCOUNT_MUTATION, 
+  UPDATE_SAVED_ACCOUNT_MUTATION, 
+  DELETE_SAVED_ACCOUNT_MUTATION,
+  CONNECT_SAVED_ACCOUNT_MUTATION 
+} from '../graphql/mt5Account';
+import { useQuery, useMutation } from '@apollo/client/react';
 
 const { Title, Text } = Typography;
 
@@ -52,6 +61,19 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
   const [form] = Form.useForm<SaveAccountInput>();
   const [editForm] = Form.useForm<UpdateAccountInput>();
 
+  // GraphQL queries and mutations
+  const { data: savedAccountsData, loading: accountsLoading, refetch: refetchAccounts } = useQuery<{ savedMt5Accounts: SavedAccount[] }>(SAVED_MT5_ACCOUNTS_QUERY, {
+    fetchPolicy: 'network-only',
+    errorPolicy: 'all',
+  });
+
+  const [saveAccount] = useMutation(SAVE_MT5_ACCOUNT_MUTATION);
+  const [updateAccount] = useMutation(UPDATE_SAVED_ACCOUNT_MUTATION);
+  const [deleteAccount] = useMutation(DELETE_SAVED_ACCOUNT_MUTATION);
+  const [connectSavedAccount] = useMutation(CONNECT_SAVED_ACCOUNT_MUTATION);
+
+  const accountList = savedAccountsData?.savedMt5Accounts || [];
+
   // Reset form when switching tabs
   const handleTabChange = (tab: 'list' | 'add') => {
     setActiveTab(tab);
@@ -74,13 +96,35 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
       if (editingAccount) {
         // Update existing account
         const values = await editForm.validateFields();
-        // Handle update mutation here
-        console.log('Update account:', values);
+        const result = await updateAccount({
+          variables: { account: values }
+        });
+        
+        if (result.data?.updateSavedAccount?.status === 'SUCCESS') {
+          appContext.notification?.success({
+            message: 'Account updated successfully',
+            description: result.data.updateSavedAccount.message,
+          });
+          await refetchAccounts();
+        } else {
+          throw new Error(result.data?.updateSavedAccount?.message || 'Update failed');
+        }
       } else {
         // Save new account
         const values = await form.validateFields();
-        // Handle save mutation here
-        console.log('Save account:', values);
+        const result = await saveAccount({
+          variables: { account: values }
+        });
+        
+        if (result.data?.saveMt5Account?.status === 'SUCCESS') {
+          appContext.notification?.success({
+            message: 'Account saved successfully',
+            description: result.data.saveMt5Account.message,
+          });
+          await refetchAccounts();
+        } else {
+          throw new Error(result.data?.saveMt5Account?.message || 'Save failed');
+        }
       }
       
       onSaved();
@@ -88,18 +132,62 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
       form.resetFields();
       editForm.resetFields();
       setEditingAccount(null);
-    } catch (error) {
-      console.error('Validation failed:', error);
+    } catch (error: any) {
+      console.error('Save/Update failed:', error);
+      appContext.notification?.error({
+        message: 'Operation failed',
+        description: error.message || 'An error occurred while saving the account.',
+      });
     }
   };
 
   const handleDelete = async (accountId: string) => {
     try {
-      // Handle delete mutation here
-      console.log('Delete account:', accountId);
-      onSaved();
-    } catch (error) {
+      const result = await deleteAccount({
+        variables: { accountId }
+      });
+      
+      if (result.data?.deleteSavedAccount?.status === 'SUCCESS') {
+        appContext.notification?.success({
+          message: 'Account deleted successfully',
+          description: result.data.deleteSavedAccount.message,
+        });
+        await refetchAccounts();
+        onSaved();
+      } else {
+        throw new Error(result.data?.deleteSavedAccount?.message || 'Delete failed');
+      }
+    } catch (error: any) {
       console.error('Delete failed:', error);
+      appContext.notification?.error({
+        message: 'Delete failed',
+        description: error.message || 'An error occurred while deleting the account.',
+      });
+    }
+  };
+
+  const handleConnectAccount = async (accountId: string) => {
+    try {
+      const result = await connectSavedAccount({
+        variables: { accountId }
+      });
+      
+      if (result.data?.connectSavedAccount?.status === 'SUCCESS') {
+        appContext.notification?.success({
+          message: 'Account connected successfully',
+          description: result.data.connectSavedAccount.message,
+        });
+        await refetchAccounts();
+        onConnect(accountId);
+      } else {
+        throw new Error(result.data?.connectSavedAccount?.message || 'Connect failed');
+      }
+    } catch (error: any) {
+      console.error('Connect failed:', error);
+      appContext.notification?.error({
+        message: 'Connect failed',
+        description: error.message || 'An error occurred while connecting to the account.',
+      });
     }
   };
 
@@ -116,28 +204,6 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
     return date.toLocaleDateString();
   };
-
-  const accountList = [
-    // Mock data - replace with actual query
-    {
-      id: '1',
-      login: 12345678,
-      server: 'MetaQuotes-Demo',
-      is_active: true,
-      last_connected: '2026-01-22T10:30:00Z',
-      created_at: '2026-01-20T08:00:00Z',
-      updated_at: '2026-01-22T10:30:00Z',
-    },
-    {
-      id: '2',
-      login: 87654321,
-      server: 'Exness-Live',
-      is_active: false,
-      last_connected: '2026-01-15T14:20:00Z',
-      created_at: '2026-01-10T12:00:00Z',
-      updated_at: '2026-01-15T14:20:00Z',
-    },
-  ];
 
   return (
     <Modal
@@ -170,7 +236,14 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
       </div>
 
       {activeTab === 'list' && (
-        <List
+        <>
+          {accountsLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <Spin size="large" />
+              <div style={{ marginTop: 16 }}>Loading accounts...</div>
+            </div>
+          ) : (
+            <List
           dataSource={accountList}
           renderItem={(account) => (
             <List.Item
@@ -179,18 +252,18 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
                   <Button
                     type="primary"
                     icon={<LoginOutlined />}
-                    onClick={() => onConnect(account.id)}
-                    disabled={account.is_active}
-                    loading={loading && account.is_active}
+                    onClick={() => handleConnectAccount(account.id)}
+                    disabled={account.isActive}
+                    loading={loading && account.isActive}
                   >
-                    {account.is_active ? 'Connected' : 'Connect'}
+                    {account.isActive ? 'Connected' : 'Connect'}
                   </Button>
                 </Tooltip>,
                 <Tooltip title="Edit account details">
                   <Button
                     icon={<EditOutlined />}
                     onClick={() => handleEdit(account)}
-                    disabled={account.is_active}
+                    disabled={account.isActive}
                   >
                     Edit
                   </Button>
@@ -207,7 +280,7 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
                     <Button
                       danger
                       icon={<DeleteOutlined />}
-                      disabled={account.is_active}
+                      disabled={account.isActive}
                     >
                       Delete
                     </Button>
@@ -218,15 +291,15 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
               <List.Item.Meta
                 avatar={
                   <Badge
-                    dot={account.is_active}
-                    status={account.is_active ? 'success' : 'default'}
+                    dot={account.isActive}
+                    status={account.isActive ? 'success' : 'default'}
                   >
                     <div
                       style={{
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        background: account.is_active ? '#52c41a' : '#d9d9d9',
+                        background: account.isActive ? '#52c41a' : '#d9d9d9',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -241,7 +314,7 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
                 title={
                   <Space>
                     <Text strong>{account.login}</Text>
-                    {account.is_active && (
+                    {account.isActive && (
                       <Tag color="green" icon={<CheckCircleOutlined />}>
                         Active
                       </Tag>
@@ -260,7 +333,7 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
                     <div>
                       <ClockCircleOutlined />{' '}
                       <Text type="secondary">
-                        Last connected: {getLastConnectedDisplay(account.last_connected)}
+                        Last connected: {getLastConnectedDisplay(account.lastConnected)}
                       </Text>
                     </div>
                   </Space>
@@ -269,6 +342,8 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
             </List.Item>
           )}
         />
+          )}
+        </>
       )}
 
       {activeTab === 'add' && (

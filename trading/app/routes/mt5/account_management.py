@@ -208,7 +208,7 @@ class AccountManagement:
             # Connect to MT5
             success = await mt5_service.connect_mt5(
                 user_id=str(current_user.id),
-                login=saved_account.login,
+                login=str(saved_account.login),
                 password=password,
                 server=saved_account.server,
                 path=saved_account.path
@@ -269,10 +269,10 @@ class AccountManagement:
                     login=account.login,
                     server=account.server,
                     path=account.path,
-                    is_active=account.is_active,
-                    last_connected=account.last_connected.isoformat() if account.last_connected else None,
-                    created_at=account.created_at.isoformat(),
-                    updated_at=account.updated_at.isoformat(),
+                    isActive=account.is_active,
+                    lastConnected=account.last_connected.isoformat() if account.last_connected else None,
+                    createdAt=account.created_at.isoformat(),
+                    updatedAt=account.updated_at.isoformat(),
                 )
                 for account in accounts
             ]

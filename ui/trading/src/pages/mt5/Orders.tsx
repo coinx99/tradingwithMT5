@@ -22,21 +22,24 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
+  CalculatorOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import {
   MT5_ACCOUNT_INFO_QUERY,
-  MT5_EXISTING_LOGIN_QUERY,
   MT5_ORDERS_QUERY,
   MT5_POSITIONS_LIVE_QUERY,
   MT5_TRADING_HISTORY_QUERY,
-  CONNECT_MT5_MUTATION,
-  ADOPT_MT5_LOGIN_MUTATION,
   CLOSE_POSITION_MUTATION,
   PLACE_ORDER_MUTATION,
   MT5_POSITIONS_UPDATES_SUBSCRIPTION,
   MT5_ORDERS_UPDATES_SUBSCRIPTION,
   MT5_ACCOUNT_UPDATES_SUBSCRIPTION,
+  CONNECT_MT5_MUTATION,
+  ADOPT_MT5_LOGIN_MUTATION,
 } from '../../graphql/mt5';
+import { SAVED_MT5_ACCOUNTS_QUERY, CONNECT_SAVED_ACCOUNT_MUTATION } from '../../graphql/mt5Account';
+import { PLACE_BULK_ORDER_MUTATION } from '../../graphql/bulkOrder';
 import type {
   MT5AccountInfo,
   MT5LiveOrder,
@@ -44,8 +47,12 @@ import type {
   MT5Trade,
   PlaceOrderInput,
 } from '../../types/mt5';
+import type { SavedAccount } from '../../types/mt5Account';
+import type { CalculatedOrder } from '../../types/bulkOrder';
 import type { ResponseStatus } from '../../types/common';
 import { appContext } from '../../context/App';
+import BulkOrderModal from '../../components/BulkOrderModal';
+import AccountManagementModal from '../../components/AccountManagementModal';
 
 const { Title, Text } = Typography;
 
@@ -80,11 +87,13 @@ const getSideTag = (type: number) => {
 const OrdersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('open');
   const [search, setSearch] = useState('');
-  const [connectOpen, setConnectOpen] = useState(false);
   const [placeOrderOpen, setPlaceOrderOpen] = useState(false);
-  const [connectError, setConnectError] = useState<string | null>(null);
+  const [bulkOrderOpen, setBulkOrderOpen] = useState(false);
+  const [accountManagementOpen, setAccountManagementOpen] = useState(false);
   const [form] = Form.useForm<OrderFormValues>();
   const [connectForm] = Form.useForm<ConnectFormValues>();
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [connectError] = useState<string | null>(null);
 
   const {
     data: accountData,
@@ -97,8 +106,10 @@ const OrdersPage: React.FC = () => {
   });
 
   const {
-    data: existingLoginData,
-  } = useQuery<{ mt5ExistingLogin: MT5AccountInfo | null }>(MT5_EXISTING_LOGIN_QUERY, {
+    data: savedAccountsData,
+    loading: accountsLoading,
+    refetch: refetchAccounts,
+  } = useQuery<{ savedMt5Accounts: SavedAccount[] }>(SAVED_MT5_ACCOUNTS_QUERY, {
     fetchPolicy: 'network-only',
     errorPolicy: 'all',
   });
@@ -137,29 +148,23 @@ const OrdersPage: React.FC = () => {
     errorPolicy: 'all',
   });
 
-  const [connectMt5, { loading: connectLoading }] = useMutation(CONNECT_MT5_MUTATION, {
-    onCompleted: () => {
-      setConnectError(null);
-      setConnectOpen(false);
-      connectForm.resetFields();
-      refreshAll();
-    },
-    onError: (error) => {
-      setConnectError(error.message || 'Failed to connect to MT5');
-    },
-  });
-
-  const [adoptMt5Login, { loading: adoptLoading }] = useMutation(ADOPT_MT5_LOGIN_MUTATION, {
-    onCompleted: () => {
-      setConnectError(null);
-      refreshAll();
-    },
-    onError: (error) => {
-      setConnectError(error.message || 'Failed to adopt MT5 login');
-    },
+  const [connectSavedAccount, { loading: connectLoading }] = useMutation(CONNECT_SAVED_ACCOUNT_MUTATION, {
+    errorPolicy: 'all',
   });
 
   const [closePosition, { loading: closePositionLoading }] = useMutation(CLOSE_POSITION_MUTATION, {
+    errorPolicy: 'all',
+  });
+
+  const [placeBulkOrder, { loading: bulkOrderLoading }] = useMutation(PLACE_BULK_ORDER_MUTATION, {
+    errorPolicy: 'all',
+  });
+
+  const [connectMt5, { loading: mt5ConnectLoading }] = useMutation(CONNECT_MT5_MUTATION, {
+    errorPolicy: 'all',
+  });
+
+  const [adoptMt5Login] = useMutation(ADOPT_MT5_LOGIN_MUTATION, {
     errorPolicy: 'all',
   });
 
@@ -512,11 +517,95 @@ const OrdersPage: React.FC = () => {
     },
   ];
 
+  const handleAccountConnect = async (accountId: string) => {
+    try {
+      const result = await connectSavedAccount({
+        variables: { accountId }
+      });
+
+      const response = result.data?.connectSavedAccount;
+      
+      if (response?.status === 'SUCCESS') {
+        appContext.notification?.success({
+          message: 'Connected successfully',
+          description: response.message,
+        });
+        setAccountManagementOpen(false);
+        refetchAccount();
+        refetchAccounts();
+      } else if (response?.status === 'ERROR') {
+        const errorMsg = response.details ? `${response.message}\n\n${response.details}` : response.message;
+        appContext.notification?.error({
+          message: 'Connection failed',
+          description: errorMsg,
+        });
+      } else if (result.errors) {
+        appContext.notification?.error({
+          message: 'Connection failed',
+          description: result.errors[0].message,
+        });
+      }
+    } catch (error: any) {
+      appContext.notification?.error({
+        message: 'Connection failed',
+        description: error.message || 'Unknown error occurred',
+      });
+    }
+  };
+
+  const handleAccountSaved = () => {
+    refetchAccounts();
+  };
+
   const refreshAll = () => {
     refetchAccount();
     refetchPositions();
     refetchOrders();
     refetchHistory();
+  };
+
+  const handleBulkOrderSubmit = async (orders: CalculatedOrder[]) => {
+    try {
+      const result = await placeBulkOrder({
+        variables: {
+          bulkOrder: {
+            orders: orders.map(order => ({
+              symbol: order.symbol,
+              type: order.type,
+              volume: order.volume,
+              price: order.price,
+            }))
+          }
+        }
+      });
+
+      const response = result.data?.placeBulkOrder;
+      
+      if (response?.status === 'SUCCESS') {
+        appContext.notification?.success({
+          message: 'Bulk orders placed successfully',
+          description: `${orders.length} orders have been placed`,
+        });
+        setBulkOrderOpen(false);
+        refreshAll();
+      } else if (response?.status === 'ERROR') {
+        const errorMsg = response.details ? `${response.message}\n\n${response.details}` : response.message;
+        appContext.notification?.error({
+          message: 'Failed to place bulk orders',
+          description: errorMsg,
+        });
+      } else if (result.errors) {
+        appContext.notification?.error({
+          message: 'Failed to place bulk orders',
+          description: result.errors[0].message,
+        });
+      }
+    } catch (error: any) {
+      appContext.notification?.error({
+        message: 'Failed to place bulk orders',
+        description: error.message || 'Unknown error occurred',
+      });
+    }
   };
 
   const onSubmitPlaceOrder = async () => {
@@ -570,21 +659,33 @@ const OrdersPage: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Button icon={<ReloadOutlined />} onClick={refreshAll} loading={loading}>
+            <Button
+              icon={<KeyOutlined />}
+              onClick={() => setAccountManagementOpen(true)}
+            >
+              Manage Accounts
+            </Button>
+            <Button
+              icon={<PlusOutlined />}
+              onClick={() => setPlaceOrderOpen(true)}
+              disabled={!accountData?.mt5AccountInfo}
+            >
+              Place Order
+            </Button>
+            <Button
+              icon={<CalculatorOutlined />}
+              onClick={() => setBulkOrderOpen(true)}
+              disabled={!accountData?.mt5AccountInfo}
+            >
+              Bulk Orders
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={refreshAll}
+              loading={loading}
+            >
               Refresh
             </Button>
-            {!currentAccountInfo ? (
-              <Button type="primary" onClick={() => {
-                setConnectError(null);
-                setConnectOpen(true);
-              }}>
-                Connect MT5
-              </Button>
-            ) : (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setPlaceOrderOpen(true)}>
-                Place order
-              </Button>
-            )}
           </Space>
         </Flex>
 
@@ -668,40 +769,38 @@ const OrdersPage: React.FC = () => {
           </Card>
         )}
 
-        {existingLoginData?.mt5ExistingLogin && !accountData?.mt5AccountInfo && (
-          <Alert
-            title="MT5 Already Logged In"
-            description={
-              <div>
-                <p>MT5 terminal is already logged in with account:</p>
-                <Space>
-                  <Text strong>{existingLoginData.mt5ExistingLogin.login}</Text>
-                  <Text type="secondary">{existingLoginData.mt5ExistingLogin.server}</Text>
-                  <Button 
-                    size="small" 
-                    type="primary" 
-                    loading={adoptLoading}
-                    onClick={handleAdoptLogin}
-                  >
-                    Use This Account
-                  </Button>
-                </Space>
-              </div>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-        )}
+        {!accountData?.mt5AccountInfo && savedAccountsData?.savedMt5Accounts && savedAccountsData.savedMt5Accounts.length > 0 && (
+              <Alert
+                title="MT5 Accounts Available"
+                description={
+                  <div>
+                    <p>You have saved MT5 accounts. Click "Manage Accounts" to connect.</p>
+                    <Space>
+                      <Button 
+                        type="primary" 
+                        icon={<KeyOutlined />}
+                        onClick={() => setAccountManagementOpen(true)}
+                      >
+                        Manage Accounts
+                      </Button>
+                    </Space>
+                  </div>
+                }
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
 
-        {!accountData?.mt5AccountInfo && !existingLoginData?.mt5ExistingLogin && !errorMessage && (
-          <Alert
-            title="MT5 not connected"
-            description="Connect MT5 to load live positions/orders and place trades."
-            type="info"
-            showIcon
-          />
-        )}
+            {!accountData?.mt5AccountInfo && !savedAccountsData?.savedMt5Accounts?.length && (
+              <Alert
+                title="No Saved Accounts"
+                description="Click 'Manage Accounts' to add your first MT5 account."
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
 
         <Segmented
           value={activeTab}
@@ -777,7 +876,7 @@ const OrdersPage: React.FC = () => {
         onCancel={() => setConnectOpen(false)}
         okText="Connect"
         onOk={handleConnect}
-        confirmLoading={connectLoading}
+        confirmLoading={mt5ConnectLoading}
         destroyOnHidden
       >
         <Form
@@ -870,6 +969,22 @@ const OrdersPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <AccountManagementModal
+        visible={accountManagementOpen}
+        onCancel={() => setAccountManagementOpen(false)}
+        onConnect={handleAccountConnect}
+        onSaved={handleAccountSaved}
+        loading={connectLoading}
+      />
+
+      <BulkOrderModal
+        visible={bulkOrderOpen}
+        onCancel={() => setBulkOrderOpen(false)}
+        onSubmit={handleBulkOrderSubmit}
+        loading={bulkOrderLoading}
+        accountInfo={currentAccountInfo}
+      />
     </Card>
   );
 };

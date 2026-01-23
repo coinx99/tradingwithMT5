@@ -8,7 +8,8 @@ from beanie import Document
 from .user import User
 from .settings import Settings
 from .trading import Trading
-from .mt5 import Position, Order, Trade, MT5Connection
+from .mt5 import Position, Order, Trade, MT5Connection as MT5ConnectionLegacy
+from .mt5_account import SavedMT5Account
 
 DocType = TypeVar("DocType", bound=Document)
 

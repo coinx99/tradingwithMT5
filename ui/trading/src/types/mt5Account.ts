@@ -17,7 +17,9 @@ export interface SaveAccountInput {
 }
 
 export interface UpdateAccountInput {
-  account_id: string;
+  accountId: string;
+  login?: number;
   password?: string;
+  server?: string;
   path?: string;
 }

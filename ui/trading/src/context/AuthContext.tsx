@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { useMutation } from '@apollo/client/react';
 import { apolloClient } from '../graphql/client';
 import { LOGIN_MUTATION, REGISTER_MUTATION, ME_QUERY, ICP_LOGIN_MUTATION } from '../graphql/user';
-import type { User, AuthResponse } from '../types/user';
+import type { User, AuthResponse, LoginResponse } from '../types/user';
 import { appContext } from './App';
 import { signOutIdentity } from '../utils/icpIdentity';
 
@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // GraphQL mutations
   const [registerMutation] = useMutation<{ register: AuthResponse }>(REGISTER_MUTATION);
-  const [loginMutation] = useMutation<{ login: AuthResponse }>(LOGIN_MUTATION);
+  const [loginMutation] = useMutation<{ login: LoginResponse }>(LOGIN_MUTATION);
   const [icpLoginMutation] = useMutation<{ icpLogin: AuthResponse }>(ICP_LOGIN_MUTATION);
 
   // Function to refresh user data from server
@@ -165,16 +165,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         if (data?.login) {
-          const authResponse: AuthResponse = data.login;
+          const loginResponse: LoginResponse = data.login;
           
-          setUser(authResponse.user);
-          localStorage.setItem('user', JSON.stringify(authResponse.user));
-          localStorage.setItem('token', authResponse.accessToken);
-          localStorage.setItem('refreshToken', authResponse.refreshToken);
+          if (loginResponse.success && loginResponse.accessToken && loginResponse.user) {
+            setUser(loginResponse.user);
+            localStorage.setItem('user', JSON.stringify(loginResponse.user));
+            localStorage.setItem('token', loginResponse.accessToken);
+            if (loginResponse.refreshToken) {
+              localStorage.setItem('refreshToken', loginResponse.refreshToken);
+            }
 
-          message?.success('Login successful!');
-          setLoading(false);
-          return true;
+            message?.success(loginResponse.message || 'Login successful!');
+            setLoading(false);
+            return true;
+          } else {
+            message?.error(loginResponse.message || 'Login failed');
+            setLoading(false);
+            return false;
+          }
         }
       } catch (graphqlError) {
         console.error('GraphQL login error:', graphqlError);

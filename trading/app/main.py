@@ -2,9 +2,9 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Set
 from colorama import Back
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -85,6 +85,11 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # graphql
 app.include_router(graphql_app, prefix="/graphql")
 
+# Root route
+@app.get("/")
+async def root():
+    return FileResponse("../ui/trading/dist/index.html")
+
 
 # Set all CORS enabled origins
 if settings.CORS_ORIGINS:
@@ -129,3 +134,18 @@ async def custom_validation_exception_handler(
         content=APIValidationError.from_pydantic(exc).dict(exclude_none=True),
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
     )
+
+
+# Catch-all route for React Router SPA
+@app.get("/{path:path}")
+async def catch_all(request: Request, path: str):
+    # If the request is for GraphQL API, let it pass through
+    if path.startswith("graphql/"):
+        return None
+    
+    # Check if the path is for a static asset
+    if path.startswith("assets/") or path.endswith(".js") or path.endswith(".css") or path.endswith(".svg") or path.endswith(".ico"):
+        return FileResponse(f"../ui/trading/dist/{path}")
+    
+    # For all other routes, serve the React app
+    return FileResponse("../ui/trading/dist/index.html")

@@ -65,6 +65,15 @@ class AuthPayload:
 
 
 @strawberry.type
+class LoginResponse:
+    success: bool
+    message: str
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    user: Optional["UserType"] = None
+
+
+@strawberry.type
 class UserType:
     id: strawberry.ID
     displayName: Optional[str] = None

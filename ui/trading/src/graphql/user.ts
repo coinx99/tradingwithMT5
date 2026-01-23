@@ -38,6 +38,8 @@ export const LOGIN_MUTATION = gql`
   ${USER_FRAGMENT}
   mutation Login($input: LoginInput!) {
     login(input: $input) {
+      success
+      message
       accessToken
       refreshToken
       user {

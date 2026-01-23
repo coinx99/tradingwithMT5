@@ -9,3 +9,12 @@ export {
   type CreateUserInput,
   type UpdateUserInput,
 } from '@ui/shared-types';
+
+// Login response type for GraphQL
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: import('@ui/shared-types').User;
+}

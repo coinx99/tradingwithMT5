@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   Form,
@@ -15,21 +15,18 @@ import {
   Col,
   Tag,
   Progress,
-  Tooltip,
-  Badge,
   Statistic,
 } from 'antd';
 import {
   CalculatorOutlined,
   WarningOutlined,
-  InfoCircleOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { BulkOrderForm, CalculatedOrder, BulkOrderSummary } from '../types/bulkOrder';
 import { BulkOrderCalculator } from '../utils/bulkOrderCalculator';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 interface BulkOrderModalProps {

@@ -242,6 +242,8 @@ class MT5Service:
 
                 self._active_user_id = user_id
 
+            log.info(f"MT5 connected for user {user_id} with login {login}")
+
             connection.is_connected = True
             connection.last_ping = datetime.now(timezone.utc)
             await connection.save()
@@ -257,7 +259,7 @@ class MT5Service:
             return True
 
         except Exception as e:
-            log.error(f"Failed to connect MT5 for user {user_id}: {e}")
+            log.error(f"Failed to connect MT5 for user {login}  {password} {e}")
             if connection:
                 connection.is_connected = False
                 connection.error_message = str(e)

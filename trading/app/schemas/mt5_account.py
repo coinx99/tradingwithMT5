@@ -15,8 +15,10 @@ class SaveAccountInput:
 @strawberry.input
 class UpdateAccountInput:
     """Input for updating an existing MT5 account"""
-    account_id: str
+    accountId: str
+    login: Optional[int] = None
     password: Optional[str] = None  # Plain text, will be encrypted if provided
+    server: Optional[str] = None
     path: Optional[str] = None
 
 

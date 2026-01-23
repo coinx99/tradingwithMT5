@@ -2,7 +2,7 @@ import strawberry
 from strawberry.types import Info
 
 from app.core.security import create_access_token
-from app.schemas.user import AuthPayload, UpdateUserInput, AdminUpdateUserInput, CreateUserInput, ChangePasswordInput, UserType, LoginInput, User
+from app.schemas.user import AuthPayload, LoginResponse, UpdateUserInput, AdminUpdateUserInput, CreateUserInput, ChangePasswordInput, UserType, LoginInput, User
 from app.models.user import User
 from app.routes.deps import get_current_user, require_superuser
 from app.utils import log
@@ -66,14 +66,64 @@ class UserMutation:
         return True
 
     @strawberry.mutation
-    async def login(self, input: LoginInput) -> AuthPayload:
+    async def login(self, input: LoginInput) -> LoginResponse:
         """Kiểm tra username/password và trả về JWT."""
         log.info(f"Login attempt: username={input.username or input.email}")
-        user = await User.authenticate(username=input.username or input.email, password=input.password)
-        if not user:
-            raise ValueError("Invalid username or password")
-        token = create_access_token(subject=str(user.id))
-        return AuthPayload(access_token=token, refresh_token=None, user=UserType(id=str(user.id), username=user.username, email=user.email, displayName=user.displayName, roles=user.roles, is_active=user.is_active, is_superuser=user.is_superuser, created_at=user.created_at, api_key=user.api_key))
+        
+        try:
+            user = await User.authenticate(username=input.username or input.email, password=input.password)
+            
+            if not user:
+                log.warning(f"Login failed: Invalid credentials for {input.username or input.email}")
+                return LoginResponse(
+                    success=False,
+                    message="Invalid username or password",
+                    access_token=None,
+                    refresh_token=None,
+                    user=None
+                )
+            
+            # Check if user is active
+            if not user.is_active:
+                log.warning(f"Login failed: Inactive user {input.username or input.email}")
+                return LoginResponse(
+                    success=False,
+                    message="Account is disabled",
+                    access_token=None,
+                    refresh_token=None,
+                    user=None
+                )
+            
+            token = create_access_token(subject=str(user.id))
+            log.info(f"Login successful: {user.username}")
+            
+            return LoginResponse(
+                success=True,
+                message="Login successful",
+                access_token=token,
+                refresh_token=None,
+                user=UserType(
+                    id=str(user.id),
+                    username=user.username,
+                    email=user.email,
+                    displayName=user.displayName,
+                    roles=user.roles,
+                    is_active=user.is_active,
+                    is_superuser=user.is_superuser,
+                    created_at=user.created_at,
+                    api_key=user.api_key
+                )
+            )
+            
+        except Exception as e:
+            log.error(f"Login error for {input.username or input.email}: {str(e)}")
+            return LoginResponse(
+                success=False,
+                message="An error occurred during login",
+                access_token=None,
+                refresh_token=None,
+                user=None
+            )
 
     @strawberry.mutation(name="updateUser")
     async def update_user(self, info: Info, input: UpdateUserInput) -> UserType:

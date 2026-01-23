@@ -93,7 +93,7 @@ class AccountManagement:
             )
 
         try:
-            saved_account = await SavedMT5Account.get(account.account_id)
+            saved_account = await SavedMT5Account.get(account.accountId)
             if not saved_account or saved_account.user_id != current_user.id:
                 return ErrorResponse(
                     status="ERROR",
@@ -102,6 +102,10 @@ class AccountManagement:
                 )
 
             # Update fields
+            if account.login is not None:
+                saved_account.login = account.login
+            if account.server is not None:
+                saved_account.server = account.server
             if account.password:
                 saved_account.encrypted_password = encrypt_password(account.password)
             if account.path is not None:
@@ -230,7 +234,7 @@ class AccountManagement:
                 
                 return SuccessResponse(
                     status="SUCCESS",
-                    message=f"Connected to {saved_account.account_name}",
+                    message=f"Connected to MT5 account {saved_account.login}@{saved_account.server}",
                     data=str(saved_account.id)
                 )
             else:

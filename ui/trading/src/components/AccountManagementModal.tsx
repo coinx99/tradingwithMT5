@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   Form,
   Input,
   InputNumber,
-  Select,
   Button,
   Card,
   List,
@@ -12,14 +11,11 @@ import {
   Typography,
   Tag,
   Popconfirm,
-  message,
   Tooltip,
   Badge,
-  Alert,
   Spin,
 } from 'antd';
 import {
-  PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   LoginOutlined,
@@ -29,6 +25,12 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import type { SavedAccount, SaveAccountInput, UpdateAccountInput } from '../types/mt5Account';
+import type { 
+  ConnectSavedAccountResponse, 
+  SaveMt5AccountResponse, 
+  UpdateSavedAccountResponse, 
+  DeleteSavedAccountResponse 
+} from '../types/graphql';
 import { appContext } from '../context/App';
 import { 
   SAVED_MT5_ACCOUNTS_QUERY, 
@@ -39,13 +41,13 @@ import {
 } from '../graphql/mt5Account';
 import { useQuery, useMutation } from '@apollo/client/react';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface AccountManagementModalProps {
   visible: boolean;
   onCancel: () => void;
-  onConnect: (accountId: string) => void;
-  onSaved: () => void;
+  onConnect: (accountId: string) => Promise<void>;
+  onSaved: () => Promise<void>;
   loading?: boolean;
 }
 
@@ -67,10 +69,10 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
     errorPolicy: 'all',
   });
 
-  const [saveAccount] = useMutation(SAVE_MT5_ACCOUNT_MUTATION);
-  const [updateAccount] = useMutation(UPDATE_SAVED_ACCOUNT_MUTATION);
-  const [deleteAccount] = useMutation(DELETE_SAVED_ACCOUNT_MUTATION);
-  const [connectSavedAccount] = useMutation(CONNECT_SAVED_ACCOUNT_MUTATION);
+  const [saveAccount] = useMutation<SaveMt5AccountResponse>(SAVE_MT5_ACCOUNT_MUTATION);
+  const [updateAccount] = useMutation<UpdateSavedAccountResponse>(UPDATE_SAVED_ACCOUNT_MUTATION);
+  const [deleteAccount] = useMutation<DeleteSavedAccountResponse>(DELETE_SAVED_ACCOUNT_MUTATION);
+  const [connectSavedAccount] = useMutation<ConnectSavedAccountResponse>(CONNECT_SAVED_ACCOUNT_MUTATION);
 
   const accountList = savedAccountsData?.savedMt5Accounts || [];
 
@@ -85,7 +87,9 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
   const handleEdit = (account: SavedAccount) => {
     setEditingAccount(account);
     editForm.setFieldsValue({
-      account_id: account.id,
+      accountId: account.id,
+      login: account.login,
+      server: account.server,
       path: account.path,
     });
     setActiveTab('add');
@@ -96,8 +100,14 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
       if (editingAccount) {
         // Update existing account
         const values = await editForm.validateFields();
+        // Ensure accountId is included
+        const updateData = {
+          ...values,
+          accountId: editingAccount.id
+        };
+        console.log('Update data being sent:', updateData); // Debug log
         const result = await updateAccount({
-          variables: { account: values }
+          variables: { account: updateData }
         });
         
         if (result.data?.updateSavedAccount?.status === 'SUCCESS') {
@@ -127,7 +137,7 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
         }
       }
       
-      onSaved();
+      await onSaved();
       handleTabChange('list');
       form.resetFields();
       editForm.resetFields();
@@ -153,7 +163,7 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
           description: result.data.deleteSavedAccount.message,
         });
         await refetchAccounts();
-        onSaved();
+        await onSaved();
       } else {
         throw new Error(result.data?.deleteSavedAccount?.message || 'Delete failed');
       }
@@ -177,8 +187,12 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
           message: 'Account connected successfully',
           description: result.data.connectSavedAccount.message,
         });
+        
+        // Refresh accounts list immediately
         await refetchAccounts();
-        onConnect(accountId);
+        
+        // Call parent handler to refresh other data and wait for completion
+        await onConnect(accountId);
       } else {
         throw new Error(result.data?.connectSavedAccount?.message || 'Connect failed');
       }
@@ -349,10 +363,17 @@ const AccountManagementModal: React.FC<AccountManagementModalProps> = ({
       {activeTab === 'add' && (
         <Card title={editingAccount ? 'Edit Account' : 'Add New Account'}>
           <Form
-            form={editingAccount ? editForm : form}
-            layout="vertical"
-            onFinish={handleSave}
-          >
+              form={editingAccount ? editForm as any : form}
+              layout="vertical"
+              onFinish={handleSave}
+            >
+            {/* Hidden field for accountId when editing */}
+            {editingAccount && (
+              <Form.Item name="accountId" style={{ display: 'none' }}>
+                <Input />
+              </Form.Item>
+            )}
+            
             <Form.Item
               name="login"
               label="MT5 Login"

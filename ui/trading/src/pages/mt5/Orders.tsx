@@ -36,7 +36,6 @@ import {
   MT5_ORDERS_UPDATES_SUBSCRIPTION,
   MT5_ACCOUNT_UPDATES_SUBSCRIPTION,
   CONNECT_MT5_MUTATION,
-  ADOPT_MT5_LOGIN_MUTATION,
 } from '../../graphql/mt5';
 import { SAVED_MT5_ACCOUNTS_QUERY, CONNECT_SAVED_ACCOUNT_MUTATION } from '../../graphql/mt5Account';
 import { PLACE_BULK_ORDER_MUTATION } from '../../graphql/bulkOrder';
@@ -48,8 +47,15 @@ import type {
   PlaceOrderInput,
 } from '../../types/mt5';
 import type { SavedAccount } from '../../types/mt5Account';
+import type { 
+  ConnectSavedAccountResponse, 
+  ClosePositionResponse, 
+  PlaceBulkOrderResponse,
+  MT5PositionsUpdatesResponse,
+  MT5OrdersUpdatesResponse,
+  MT5AccountUpdatesResponse
+} from '../../types/graphql';
 import type { CalculatedOrder } from '../../types/bulkOrder';
-import type { ResponseStatus } from '../../types/common';
 import { appContext } from '../../context/App';
 import BulkOrderModal from '../../components/BulkOrderModal';
 import AccountManagementModal from '../../components/AccountManagementModal';
@@ -107,7 +113,6 @@ const OrdersPage: React.FC = () => {
 
   const {
     data: savedAccountsData,
-    loading: accountsLoading,
     refetch: refetchAccounts,
   } = useQuery<{ savedMt5Accounts: SavedAccount[] }>(SAVED_MT5_ACCOUNTS_QUERY, {
     fetchPolicy: 'network-only',
@@ -148,15 +153,13 @@ const OrdersPage: React.FC = () => {
     errorPolicy: 'all',
   });
 
-  const [connectSavedAccount, { loading: connectLoading }] = useMutation(CONNECT_SAVED_ACCOUNT_MUTATION, {
+  const [connectSavedAccount] = useMutation<ConnectSavedAccountResponse>(CONNECT_SAVED_ACCOUNT_MUTATION);
+
+  const [closePosition, { loading: closePositionLoading }] = useMutation<ClosePositionResponse>(CLOSE_POSITION_MUTATION, {
     errorPolicy: 'all',
   });
 
-  const [closePosition, { loading: closePositionLoading }] = useMutation(CLOSE_POSITION_MUTATION, {
-    errorPolicy: 'all',
-  });
-
-  const [placeBulkOrder, { loading: bulkOrderLoading }] = useMutation(PLACE_BULK_ORDER_MUTATION, {
+  const [placeBulkOrder, { loading: bulkOrderLoading }] = useMutation<PlaceBulkOrderResponse>(PLACE_BULK_ORDER_MUTATION, {
     errorPolicy: 'all',
   });
 
@@ -164,16 +167,13 @@ const OrdersPage: React.FC = () => {
     errorPolicy: 'all',
   });
 
-  const [adoptMt5Login] = useMutation(ADOPT_MT5_LOGIN_MUTATION, {
-    errorPolicy: 'all',
-  });
-
+  
   const [positions, setPositions] = useState<MT5LivePosition[]>([]);
   const [pendingOrders, setPendingOrders] = useState<MT5LiveOrder[]>([]);
   const [accountInfo, setAccountInfo] = useState<MT5AccountInfo | null>(null);
 
   // Real-time subscriptions
-  const { data: positionsUpdateData } = useSubscription(
+  const { data: positionsUpdateData } = useSubscription<MT5PositionsUpdatesResponse>(
     MT5_POSITIONS_UPDATES_SUBSCRIPTION,
     {
       skip: !accountData?.mt5AccountInfo, // Only subscribe when connected
@@ -181,7 +181,7 @@ const OrdersPage: React.FC = () => {
     }
   );
 
-  const { data: ordersUpdateData } = useSubscription(
+  const { data: ordersUpdateData } = useSubscription<MT5OrdersUpdatesResponse>(
     MT5_ORDERS_UPDATES_SUBSCRIPTION,
     {
       skip: !accountData?.mt5AccountInfo, // Only subscribe when connected
@@ -189,7 +189,7 @@ const OrdersPage: React.FC = () => {
     }
   );
 
-  const { data: accountUpdateData } = useSubscription(
+  const { data: accountUpdateData } = useSubscription<MT5AccountUpdatesResponse>(
     MT5_ACCOUNT_UPDATES_SUBSCRIPTION,
     {
       skip: !accountData?.mt5AccountInfo, // Only subscribe when connected
@@ -293,10 +293,6 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const handleAdoptLogin = async () => {
-    await adoptMt5Login();
-  };
-
   const openColumns: ColumnsType<MT5LivePosition> = [
     {
       title: 'Symbol',
@@ -387,11 +383,11 @@ const OrdersPage: React.FC = () => {
                   message: 'Failed to close position',
                   description: errorMsg,
                 });
-              } else if (result.errors) {
+              } else if (result.error) {
                 // Fallback for GraphQL errors
                 appContext.notification?.error({
                   message: 'Failed to close position',
-                  description: result.errors[0].message,
+                  description: result.error.message,
                 });
               }
             } catch (error: any) {
@@ -539,10 +535,10 @@ const OrdersPage: React.FC = () => {
           message: 'Connection failed',
           description: errorMsg,
         });
-      } else if (result.errors) {
+      } else if (result.error) {
         appContext.notification?.error({
           message: 'Connection failed',
-          description: result.errors[0].message,
+          description: result.error.message,
         });
       }
     } catch (error: any) {
@@ -553,8 +549,9 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const handleAccountSaved = () => {
-    refetchAccounts();
+  const handleAccountSaved = async () => {
+    await refetchAccounts();
+    await refetchAccount(); // Also refresh account info in case new account is connected
   };
 
   const refreshAll = () => {
@@ -594,10 +591,10 @@ const OrdersPage: React.FC = () => {
           message: 'Failed to place bulk orders',
           description: errorMsg,
         });
-      } else if (result.errors) {
+      } else if (result.error) {
         appContext.notification?.error({
           message: 'Failed to place bulk orders',
-          description: result.errors[0].message,
+          description: result.error.message,
         });
       }
     } catch (error: any) {
@@ -975,7 +972,7 @@ const OrdersPage: React.FC = () => {
         onCancel={() => setAccountManagementOpen(false)}
         onConnect={handleAccountConnect}
         onSaved={handleAccountSaved}
-        loading={connectLoading}
+        loading={mt5ConnectLoading}
       />
 
       <BulkOrderModal
